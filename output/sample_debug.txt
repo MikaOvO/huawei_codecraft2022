@@ -1,0 +1,14 @@
+consumers: 1 day: 1 name: A bandwidth: 19261
+consumers: 2 day: 1 name: B bandwidth: 17223
+consumers: 1 day: 2 name: A bandwidth: 11964
+consumers: 2 day: 2 name: B bandwidth: 16160
+consumers: 1 day: 3 name: A bandwidth: 15121
+consumers: 2 day: 3 name: B bandwidth: 24221
+producers: 1 bandwidth: 10080 name: A
+producers: 2 bandwidth: 30080 name: B
+qos_down: 400
+producers 1 consumers: 1 has edge.
+producers 1 consumers: 2 has edge.
+producers 2 consumers: 1 has edge.
+producers 2 consumers: 2 has edge.
+read cost 0.001s.
