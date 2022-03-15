@@ -425,6 +425,20 @@ void WorkTimeBaseline(int time) {
         //     AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);
         // }
         int block = consumers[consumer_id].time_need[time] / producer_number;
+        // 这里没必要135。。随便设置的
+        // 先分配不花钱的（理论不花钱，实际上？
+        for (int k = 1; k <= 135; ++k) {
+            for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+                if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                    continue;
+                }
+                int cost_bandwidth = min(max(0, producers[producer_id].has_cost - producers[producer_id].time_cost[time]),
+                                         consumers[consumer_id].time_need[time]);
+                cost_bandwidth = min(cost_bandwidth, block);
+                if (cost_bandwidth == 0) continue;
+                AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 1);
+            }
+        }
         for (int k = 1; k <= 135; ++k) {
             for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
                 if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
