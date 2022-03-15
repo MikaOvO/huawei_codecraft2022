@@ -343,6 +343,7 @@ void PreWork() {
 
     // 一种感觉上更优的方法去处理5%
     // 10000^2 / 20 = 5e6, 5e6 * 30 * 100 ~ 1e10 不可以接受
+    // 优化了一下，复杂度除以30
     for (int k = 1; k <= can_full_use_time * producer_number; ++k) {
         int best_producer_id = -1, best_time = -1, can_max_use = -1;
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
@@ -350,7 +351,7 @@ void PreWork() {
                 continue ;
             }
             for (int time = 1; time <= times; ++time) {
-                int can_cost = producers[producer_id].need_time_cost_sum[time];
+                int can_cost = min(producers[producer_id].need_time_cost_sum[time], producers[producer_id].TimeRemain(time));
                 if (can_cost > can_max_use) {
                     can_max_use = can_cost;
                     best_producer_id = producer_id;
@@ -376,6 +377,29 @@ void PreWork() {
             if (cost_bandwidth == 0) continue;
             AddSomeBandWidth(best_time, best_producer_id, consumer_id, cost_bandwidth);   
         }
+    }
+
+    if (debug_file != nullptr) {
+        int *tmp_time_cost = new int[MAXT];
+        int num = 0;
+        (*debug_file) <<"prework5%:"<< endl;
+        for (int i = 1; i <= producer_number; ++i) {
+            num = 0;
+            for (int time = 1; time <= times; ++time) tmp_time_cost[time] = producers[i].time_cost[time];
+            sort(tmp_time_cost + 1, tmp_time_cost + 1 + times);
+            (*debug_file) << "producer_id: " << i << "bandwidth: " << producers[i].bandwidth <<endl;
+            for (int time = cost_max_index ; time <= times; ++time) {
+                (*debug_file) << " " << tmp_time_cost[time];
+                if (num == 20) {
+                    num = 0;
+                    (*debug_file) << endl;
+                }
+                ++num;
+            } 
+            (*debug_file) << endl;
+        }
+        delete[] tmp_time_cost;
+        (*debug_file) << endl;
     }
 }
 
