@@ -1,1 +1,1 @@
-sum_cost: 116576
+sum_cost: 9622
