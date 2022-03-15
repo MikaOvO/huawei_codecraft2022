@@ -218,20 +218,26 @@ struct Producer {
     string name;
     int bandwidth;
     int has_cost;
+    int has_use_full_time;
     int time_remain_bandwidth;
     int can_visit_point[MAXM];
     int is_full_use_time[MAXT];
     int cost[MAXT];
+    priority_queue<int, vector<int>, greater<int> > cost_que;
     Producer() {
         for (int i = 0; i < MAXT; ++i) is_full_use_time[i] = 0;
         has_cost = 0;
+        has_use_full_time = 0;
+    }
+    bool operator < (const Producer& producer) const {
+        return bandwidth < producer.bandwidth;
     }
 } producers[MAXN];
 
 struct Consumer {
     string name;
-    int can_visit_point[MAXN];
     int time_need_bandwidth;
+    int can_visit_point[MAXN];
     int need_bandwidth[MAXT];
     Consumer() {
     }
@@ -241,7 +247,7 @@ struct Consumer {
 map<pair<int,int>, int> info_bandwidth[MAXT]; 
 
 void Init() {
-    srand(0);
+    srand(11);
     ::cost_max_index = (times * 95 + 99) / 100;
     if (debug_file != nullptr) {
         (*debug_file) << "cost_max_index: " << cost_max_index <<endl;
@@ -249,6 +255,7 @@ void Init() {
     ::can_full_use_time = times - cost_max_index;
     int *p = new int[MAXT];
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        // for (int i = 1; i <= cost_max_index; ++i) producers[producer_id].cost_que.push(0);
         for (int i = 1; i <= times; ++i) p[i] = i;
         random_shuffle(p + 1, p + 1 + times);
         for (int i = 1; i <= can_full_use_time; ++i) {
@@ -258,6 +265,7 @@ void Init() {
             }
         }
     }
+    delete[] p;
 }
 
 void AddSomeBandWidth(int time, int producer_id, int consumer_id, int bandwidth) {
@@ -272,26 +280,36 @@ void AddSomeBandWidth(int time, int producer_id, int consumer_id, int bandwidth)
 
 void WorkTimeBaseline(int time) {
     for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        //     if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+        //         continue;
+        //     }
+        //     int cost_bandwidth = min(max(0, producers[producer_id].has_cost - 
+        //                                     (producers[producer_id].bandwidth - producers[producer_id].time_remain_bandwidth)), 
+        //                              consumers[consumer_id].time_need_bandwidth);
+        //     if (cost_bandwidth == 0) continue;
+        //     AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);
+        // }
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
             if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
                 continue;
             }
             int cost_bandwidth = min(producers[producer_id].time_remain_bandwidth, consumers[consumer_id].time_need_bandwidth);
             if (cost_bandwidth == 0) continue;
-            producers[producer_id].time_remain_bandwidth -= cost_bandwidth;
-            consumers[consumer_id].time_need_bandwidth -= cost_bandwidth;
-            if (info_bandwidth[time].find(make_pair(producer_id, consumer_id)) == info_bandwidth[time].end()) 
-                info_bandwidth[time][make_pair(producer_id, consumer_id)] = 0;
-            info_bandwidth[time][make_pair(producer_id, consumer_id)] += cost_bandwidth;
+            AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);
         }
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        producers[producer_id].has_cost = max(producers[producer_id].has_cost, 
+                                              producers[producer_id].bandwidth - producers[producer_id].time_remain_bandwidth);
     }
 }
 
 void WorkTimeMaxFlow(int time) {
     MaxFlow mf;
     mf.clear();
-    // run full use (not cost)
     int source = 0, target = consumer_number + producer_number + 1;
+    // run full use (not cost)
     for (int i = 1; i <= producer_number; ++i) {
         if (producers[i].is_full_use_time[time]) {
             mf.addEdge(source, i, producers[i].time_remain_bandwidth);
@@ -524,6 +542,9 @@ void ReadIn() {
         }
     }
     producer_number = lines - 1;
+
+    // sort(producers + 1, producers + 1 + producer_number);
+    // for (int i = 1; i <= producer_number; ++i) producers_name_id_map[producers[i].name] = i;
 
     read_file.close();   
     lines = 0;
