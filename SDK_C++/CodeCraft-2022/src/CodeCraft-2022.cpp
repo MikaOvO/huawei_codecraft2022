@@ -610,6 +610,51 @@ int main(int argc, char *argv[]) {
         (*result_file) << "sum_cost: " << sum_cost << " cost_time: " << (double)(clock() - begin_time) / CLOCKS_PER_SEC << "s" << endl;
         (*result_file) << endl;
     }    
+    if (result_file != nullptr && debug_file != nullptr) {
+        for (int i = 1; i <= producer_number; ++i) {
+            sort(producers[i].time_cost + 1, producers[i].time_cost + 1 + times);
+        }
+        int num = 0;
+        (*debug_file) << "********end********" << endl;
+        for (int i = 1; i < producer_number; ++i) {
+            num = 0;
+            (*debug_file) << "producer_id: " << i << " bandwidth: " << producers[i].bandwidth << endl;
+            // after sort !
+            (*debug_file) << "sample pre95%: " <<producers[i].time_cost[1];
+            if (times <= 100) {
+                for (int time = 2; time <= cost_max_index; ++time) {
+                    (*debug_file) << " " << producers[i].time_cost[time];
+                    if (num == 20) {
+                        num = 0;
+                        (*debug_file) << endl;
+                    }
+                    ++num;
+                }
+            } else {
+                for (int time = 2; time <= cost_max_index; time += times * 2 / 100 ) {
+                    (*debug_file) << " " << producers[i].time_cost[time];
+                    if (num == 20) {
+                        num = 0;
+                        (*debug_file) << endl;
+                    }
+                    ++num;
+                }    
+            }
+            num = 0;
+            (*debug_file) << endl;
+            (*debug_file) << "cost: " << producers[i].time_cost[cost_max_index] << endl;
+            (*debug_file) << "last5%: ";
+            for (int time = cost_max_index + 1; time <= times; ++time) {
+                (*debug_file) << " " << producers[i].time_cost[time];
+                if (num == 20) {
+                    num = 0;
+                    (*debug_file) << endl;
+                }
+                ++num;
+            } 
+            (*debug_file) << endl;
+        }
+    }
     if (debug_file != nullptr) debug_file->close();
     if (result_file != nullptr) result_file->close();
     return 0;
