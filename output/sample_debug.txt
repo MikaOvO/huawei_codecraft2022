@@ -7,8 +7,5 @@ consumers: 2 day: 3 name: B bandwidth: 24221
 producers: 1 bandwidth: 10080 name: A
 producers: 2 bandwidth: 30080 name: B
 qos_down: 400
-producers 1 consumers: 1 has edge.
-producers 1 consumers: 2 has edge.
-producers 2 consumers: 1 has edge.
-producers 2 consumers: 2 has edge.
-read cost 0.001s.
+read cost 0s.
+check fail !!!

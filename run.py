@@ -9,8 +9,9 @@ main_file = os.getcwd() + '\SDK_C++\CodeCraft-2022\src\CodeCraft-2022.cpp'
 
 for path, dir_list, _ in os.walk(data_dir):
     for dir in dir_list:
-        if dir != 'sample':
-            continue
+        ## only run sample
+        ## if dir != 'sample':
+        ##    continue
         data_child_dir = os.path.join(path, dir)
         
         ## modify here

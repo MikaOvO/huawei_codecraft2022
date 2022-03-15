@@ -7,6 +7,7 @@
 #include <fstream>
 #include <time.h>
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -17,10 +18,181 @@ string output_dir = "/output";
 string data_dir = "/data";
 
 const int MAXT = 8928 + 1;
-const int MAXM = 35 + 1;
+const int MAXM = 135 + 1;
 const int MAXN = 135 + 1; 
 
 clock_t begin_time;
+
+// algorithm
+// 最小费用流
+struct MinCostFlow {
+    const static int MAXN = 135 * 2;
+    const static int MAXM = 135 * 35 * 4;
+    const static int INF = 1e9;
+    struct Edge
+    {
+        int from, to, cap, flow, cost, nxt;
+    };
+    Edge edge[MAXM];
+    int head[MAXN], edgenum;
+    int pre[MAXN];//记录增广路径上 到达点i的边的编号
+    int dist[MAXN];
+    bool vis[MAXN];
+    int source, sink;//超级源点 超级汇点
+    void init()
+    {
+        edgenum = 0;
+        memset(head, -1, sizeof(head));
+    }
+    void addEdge(int u, int v, int w, int c)
+    {
+        Edge E1 = {u, v, w, 0, c, head[u]};
+        edge[edgenum] = E1;
+        head[u] = edgenum++;
+        Edge E2 = {v, u, 0, 0, -c, head[v]};
+        edge[edgenum] = E2;
+        head[v] = edgenum++;
+    }
+    bool SPFA(int s, int t)//寻找花销最少的路径
+    {
+        //跑一遍SPFA 找s--t的最少花销路径 且该路径上每一条边不能满流
+        //若存在 说明可以继续增广，反之不能
+        queue<int> Q;
+        for(int i = 0; i < MAXN; ++i) dist[i] = INF;
+        memset(vis, false, sizeof(vis));
+        memset(pre, -1, sizeof(pre));
+        dist[s] = 0;
+        vis[s] = true;
+        Q.push(s);
+        while(!Q.empty())
+        {
+            int u = Q.front();
+            Q.pop();
+            vis[u] = false;
+            for(int i = head[u]; i != -1; i = edge[i].nxt)
+            {
+                Edge E = edge[i];
+                if(dist[E.to] > dist[u] + E.cost && E.cap > E.flow)//可以松弛 且 没有满流
+                {
+                    dist[E.to] = dist[u] + E.cost;
+                    pre[E.to] = i;//记录前驱边 的编号
+                    if(!vis[E.to])
+                    {
+                        vis[E.to] = true;
+                        Q.push(E.to);
+                    }
+                }
+            }
+        }
+        return pre[t] != -1;//可达返回true
+    }
+    void MCMF(int s, int t, int &cost, int &flow)
+    {
+        flow = 0;//总流量
+        cost = 0;//总费用
+        while(SPFA(s, t))//每次寻找花销最小的路径
+        {
+            int Min = INF;
+            //通过反向弧 在源点到汇点的最少花费路径 找最小增广流
+            for(int i = pre[t]; i != -1; i = pre[edge[i^1].to])
+            {
+                Edge E = edge[i];
+                Min = min(Min, E.cap - E.flow);
+            }
+            //增广
+            for(int i = pre[t]; i != -1; i = pre[edge[i^1].to])
+            {
+                edge[i].flow += Min;
+                edge[i^1].flow -= Min;
+                cost += edge[i].cost * Min;//增广流的花销
+            }
+            flow += Min;//总流量累加
+        }
+    }
+};
+
+// 最大流
+struct MaxFlow {
+    const static int maxm = 135 * 35 * 4;
+    const static int maxn = 135 * 2;
+    const static int INF = 1e9;
+    struct Edge {
+        int u,v,f,nxt;
+    };
+    Edge edges[maxm];
+    int head[maxn],tot;
+    void clear() {
+        tot = 0;
+        for(int i=0;i<maxn;i++) head[i]=-1;
+    }
+    void addEdge(int u,int v,int f) {
+        edges[tot].u=u;edges[tot].v=v;edges[tot].f=f;
+        edges[tot].nxt=head[u];head[u]=tot++;
+        edges[tot].u=v;edges[tot].v=u;edges[tot].f=0;
+        edges[tot].nxt=head[v];head[v]=tot++;
+    }
+
+    int depth[maxn],cur[maxn];
+    bool bfs(int S,int T) // 分层图
+    {
+        queue<int> Q;
+        memset(depth,0,sizeof(depth));
+        depth[S]=1;
+        Q.push(S);
+        while(!Q.empty())
+        {
+            int u=Q.front();Q.pop();
+            for(int i=head[u];~i;i=edges[i].nxt)
+            {
+                if(edges[i].f>0 && depth[edges[i].v]==0)
+                {
+                    depth[edges[i].v]=depth[u]+1;
+                    Q.push(edges[i].v);
+                    if(edges[i].v==T) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    int dfs(int u,int T,int flow) // 找增广路
+    {
+        if(u==T) return flow;
+        for(int &i=cur[u];~i;i=edges[i].nxt) // &符号，i改变同时也改变cur[u]的值，达到记录当前弧的目的
+        {
+            if(depth[edges[i].v]==depth[u]+1 && edges[i].f!=0)
+            {
+                int sub=dfs(edges[i].v,T,min(flow,edges[i].f)); // 向下增广
+                if(sub>0)
+                {
+                    edges[i].f-=sub;
+                    edges[i^1].f+=sub;
+                    return sub;
+                }
+            }
+        }
+        return 0;
+    }
+
+    int Dinic(int n,int S,int T)
+    {
+        int ans=0;
+        while(bfs(S,T))
+        {
+            for(int i=0;i<=n;i++) // //每一次建立完分层图后都要把cur置为每一个点的第一条边
+                cur[i]=head[i];
+            while(int f=dfs(S,T,INF))
+                ans+=f;
+        }
+        return ans;
+    }
+    //n最多的点数，S为源点，T为汇点
+    /*
+    tot=0;
+    memset(head,-1,sizeof(head));
+    addEdge(u,v,c);
+    */
+};
 
 // utils
 int StringToInt(string &str);
@@ -39,9 +211,14 @@ int times, producer_number, consumer_number;
 struct Producer {
     string name;
     int bandwidth;
+    int has_cost;
     int time_remain_bandwidth;
     int can_visit_point[MAXM];
-    Producer() {}
+    int is_full_use_day[MAXT];
+    Producer() {
+        for (int i = 0; i < MAXT; ++i) is_full_use_day[i] = 0;
+        has_cost = 0;
+    }
 } producers[MAXN];
 
 struct Consumer {
@@ -56,22 +233,90 @@ struct Consumer {
 // On (producer_id, consumer_id)-info Give value-bandwidth
 map<pair<int,int>, int> info_bandwidth[MAXT]; 
 
-void WorkTime(int time) {
-    //  QAQ
-    // for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
-    //     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-    //         if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
-    //             continue;
-    //         }
-    //         int cost_bandwidth = min(producers[producer_id].time_remain_bandwidth, consumers[consumer_id].time_need_bandwidth);
-    //         if (cost_bandwidth == 0) continue;
-    //         producers[producer_id].time_remain_bandwidth -= cost_bandwidth;
-    //         consumers[consumer_id].time_need_bandwidth -= cost_bandwidth;
-    //         if (info_bandwidth[time].find(make_pair(producer_id, consumer_id)) == info_bandwidth[time].end()) 
-    //             info_bandwidth[time][make_pair(producer_id, consumer_id)] = 0;
-    //         info_bandwidth[time][make_pair(producer_id, consumer_id)] += cost_bandwidth;
-    //     }
-    // }
+void AddSomeBandWidth(int time, int producer_id, int consumer_id, int bandwidth) {
+    if (info_bandwidth[time].find(make_pair(producer_id, consumer_id)) == info_bandwidth[time].end()) 
+        info_bandwidth[time][make_pair(producer_id, consumer_id)] = 0;
+    info_bandwidth[time][make_pair(producer_id, consumer_id)] += bandwidth;
+}
+
+void WorkTimeBaseline(int time) {
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                continue;
+            }
+            int cost_bandwidth = min(producers[producer_id].time_remain_bandwidth, consumers[consumer_id].time_need_bandwidth);
+            if (cost_bandwidth == 0) continue;
+            producers[producer_id].time_remain_bandwidth -= cost_bandwidth;
+            consumers[consumer_id].time_need_bandwidth -= cost_bandwidth;
+            if (info_bandwidth[time].find(make_pair(producer_id, consumer_id)) == info_bandwidth[time].end()) 
+                info_bandwidth[time][make_pair(producer_id, consumer_id)] = 0;
+            info_bandwidth[time][make_pair(producer_id, consumer_id)] += cost_bandwidth;
+        }
+    }
+}
+
+void WorkTimeMaxFlow(int time) {
+    MaxFlow mf;
+    mf.clear();
+    int source = 0, target = consumer_number + producer_number + 1;
+    for (int i = 1; i <= producer_number; ++i) {
+        mf.addEdge(source, i, producers[i].time_remain_bandwidth);
+    }
+    for (int i = 1; i <= consumer_number; ++i) {
+       mf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth);
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+            if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                continue;
+            }
+            mf.addEdge(producer_id, producer_number + consumer_id, mf.INF);
+        }
+    }
+    mf.Dinic(target, source, target);
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        for (int i = mf.head[producer_number + consumer_id]; i != -1; i = mf.edges[i].nxt) {
+            if (1 <= mf.edges[i].v && mf.edges[i].v <= producer_number && mf.edges[i].f > 0) {
+                AddSomeBandWidth(time, mf.edges[i].v, consumer_id, mf.edges[i].f);
+            }
+        }
+    }
+}
+
+void WorkTimeMinCostFlow(int time) {
+    MinCostFlow mf;
+    mf.init();
+    int source = 0, target = consumer_number + producer_number + 1;
+    for (int i = 1; i <= producer_number; ++i) {
+        mf.addEdge(source, i, producers[i].time_remain_bandwidth - producers[i].has_cost, 1);
+        mf.addEdge(source, i, producers[i].has_cost, 0);
+    }
+    for (int i = 1; i <= consumer_number; ++i) {
+       mf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth, 0);
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+            if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                continue;
+            }
+            mf.addEdge(producer_id, producer_number + consumer_id, mf.INF, 0);
+        }
+    }
+    int cost=0, flow;
+    mf.MCMF(source, target, cost, flow);
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int i = mf.head[producer_id]; i != -1; i = mf.edge[i].nxt) {
+            if (producer_number + 1 <= mf.edge[i].to && mf.edge[i].to <= producer_number + consumer_number && mf.edge[i].flow > 0) {
+                AddSomeBandWidth(time, producer_id, mf.edge[i].to - producer_number, mf.edge[i].flow);
+                producers[producer_id].time_remain_bandwidth -= mf.edge[i].flow;
+            }
+        }
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        producers[producer_id].has_cost = max(producers[producer_id].has_cost, 
+                                              producers[producer_id].bandwidth - producers[producer_id].time_remain_bandwidth);
+    }
 }
 
 void Work() {
@@ -82,7 +327,8 @@ void Work() {
         for (int i = 1; i <= consumer_number; ++i) {
             consumers[i].time_need_bandwidth = consumers[i].need_bandwidth[time];
         }
-        WorkTime(time);
+        // 调用不同策略
+        WorkTimeMaxFlow(time);
     }
 }
 
@@ -204,7 +450,7 @@ void ReadIn() {
         }
         int producer_id = producers_name_id_map[vec_data[0]];
         for (int i = 1; i < vec_data.size(); ++i) {
-            if (StringToInt(vec_data[i]) >= qos_down) {
+            if (StringToInt(vec_data[i]) < qos_down) {
                 int consumer_id = consumer_ids[i];
                 producers[producer_id].can_visit_point[consumer_id] = 1;
                 consumers[consumer_id].can_visit_point[producer_id] = 1;
