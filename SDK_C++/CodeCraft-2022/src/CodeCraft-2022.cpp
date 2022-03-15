@@ -8,6 +8,8 @@
 #include <time.h>
 #include <vector>
 #include <queue>
+#include <assert.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -203,10 +205,14 @@ vector<string> Split(const string& str, const string& delim);
 void ReadIn();
 void Output();
 
+// name map
 map<string, int> producers_name_id_map;
 map<string, int> consumers_name_id_map;
 
+// number
 int times, producer_number, consumer_number;
+
+int cost_max_index, can_full_use_time;
 
 struct Producer {
     string name;
@@ -214,9 +220,10 @@ struct Producer {
     int has_cost;
     int time_remain_bandwidth;
     int can_visit_point[MAXM];
-    int is_full_use_day[MAXT];
+    int is_full_use_time[MAXT];
+    int cost[MAXT];
     Producer() {
-        for (int i = 0; i < MAXT; ++i) is_full_use_day[i] = 0;
+        for (int i = 0; i < MAXT; ++i) is_full_use_time[i] = 0;
         has_cost = 0;
     }
 } producers[MAXN];
@@ -233,7 +240,31 @@ struct Consumer {
 // On (producer_id, consumer_id)-info Give value-bandwidth
 map<pair<int,int>, int> info_bandwidth[MAXT]; 
 
+void Init() {
+    srand(0);
+    ::cost_max_index = (times * 95 + 99) / 100;
+    if (debug_file != nullptr) {
+        (*debug_file) << "cost_max_index: " << cost_max_index <<endl;
+    }
+    ::can_full_use_time = times - cost_max_index;
+    int *p = new int[MAXT];
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int i = 1; i <= times; ++i) p[i] = i;
+        random_shuffle(p + 1, p + 1 + times);
+        for (int i = 1; i <= can_full_use_time; ++i) {
+            producers[producer_id].is_full_use_time[p[i]] = 1;
+            if (debug_file != nullptr) {
+                (*debug_file) << "producer: " << producer_id << " on time: " << p[i] << " full use." << endl;
+            }
+        }
+    }
+}
+
 void AddSomeBandWidth(int time, int producer_id, int consumer_id, int bandwidth) {
+    // 把耗费放到当天里，注意策略里不需要写这一块了
+    producers[producer_id].time_remain_bandwidth -= bandwidth;
+    consumers[consumer_id].time_need_bandwidth -= bandwidth;
+
     if (info_bandwidth[time].find(make_pair(producer_id, consumer_id)) == info_bandwidth[time].end()) 
         info_bandwidth[time][make_pair(producer_id, consumer_id)] = 0;
     info_bandwidth[time][make_pair(producer_id, consumer_id)] += bandwidth;
@@ -259,7 +290,35 @@ void WorkTimeBaseline(int time) {
 void WorkTimeMaxFlow(int time) {
     MaxFlow mf;
     mf.clear();
+    // run full use (not cost)
     int source = 0, target = consumer_number + producer_number + 1;
+    for (int i = 1; i <= producer_number; ++i) {
+        if (producers[i].is_full_use_time[time]) {
+            mf.addEdge(source, i, producers[i].time_remain_bandwidth);
+        }
+    }
+    for (int i = 1; i <= consumer_number; ++i) {
+       mf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth);
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+            if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                continue;
+            }
+            mf.addEdge(producer_id, producer_number + consumer_id, mf.INF);
+        }
+    }
+    mf.Dinic(target, source, target);
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        for (int i = mf.head[producer_number + consumer_id]; i != -1; i = mf.edges[i].nxt) {
+            if (1 <= mf.edges[i].v && mf.edges[i].v <= producer_number && mf.edges[i].f > 0) {
+                AddSomeBandWidth(time, mf.edges[i].v, consumer_id, mf.edges[i].f);
+            }
+        }
+    }
+
+    // run other
+    mf.clear();
     for (int i = 1; i <= producer_number; ++i) {
         mf.addEdge(source, i, producers[i].time_remain_bandwidth);
     }
@@ -285,35 +344,69 @@ void WorkTimeMaxFlow(int time) {
 }
 
 void WorkTimeMinCostFlow(int time) {
-    MinCostFlow mf;
-    mf.init();
+    MaxFlow mf;
+    mf.clear();
+    // run full use (not cost)
     int source = 0, target = consumer_number + producer_number + 1;
     for (int i = 1; i <= producer_number; ++i) {
-        mf.addEdge(source, i, producers[i].time_remain_bandwidth - producers[i].has_cost, 1);
-        mf.addEdge(source, i, producers[i].has_cost, 0);
+        if (producers[i].is_full_use_time[time]) {
+            mf.addEdge(source, i, producers[i].time_remain_bandwidth);
+        }
     }
     for (int i = 1; i <= consumer_number; ++i) {
-       mf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth, 0);
+       mf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth);
     }
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
             if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
                 continue;
             }
-            mf.addEdge(producer_id, producer_number + consumer_id, mf.INF, 0);
+            mf.addEdge(producer_id, producer_number + consumer_id, mf.INF);
+        }
+    }
+    mf.Dinic(target, source, target);
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        for (int i = mf.head[producer_number + consumer_id]; i != -1; i = mf.edges[i].nxt) {
+            if (1 <= mf.edges[i].v && mf.edges[i].v <= producer_number && mf.edges[i].f > 0) {
+                AddSomeBandWidth(time, mf.edges[i].v, consumer_id, mf.edges[i].f);
+            }
+        }
+    }
+
+    MinCostFlow mcf;
+    mcf.init();
+    source = 0, target = consumer_number + producer_number + 1;
+    for (int i = 1; i <= producer_number; ++i) {
+        if (producers[i].is_full_use_time[time]) {
+            continue ;
+        }
+        mcf.addEdge(source, i, producers[i].time_remain_bandwidth - producers[i].has_cost, 1);
+        mcf.addEdge(source, i, producers[i].has_cost, 0);
+    }
+    for (int i = 1; i <= consumer_number; ++i) {
+       mcf.addEdge(producer_number + i, target, consumers[i].time_need_bandwidth, 0);
+    }
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+            if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                continue;
+            }
+            mcf.addEdge(producer_id, producer_number + consumer_id, mcf.INF, 0);
         }
     }
     int cost=0, flow;
-    mf.MCMF(source, target, cost, flow);
+    mcf.MCMF(source, target, cost, flow);
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-        for (int i = mf.head[producer_id]; i != -1; i = mf.edge[i].nxt) {
-            if (producer_number + 1 <= mf.edge[i].to && mf.edge[i].to <= producer_number + consumer_number && mf.edge[i].flow > 0) {
-                AddSomeBandWidth(time, producer_id, mf.edge[i].to - producer_number, mf.edge[i].flow);
-                producers[producer_id].time_remain_bandwidth -= mf.edge[i].flow;
+        for (int i = mcf.head[producer_id]; i != -1; i = mcf.edge[i].nxt) {
+            if (producer_number + 1 <= mcf.edge[i].to && mcf.edge[i].to <= producer_number + consumer_number && mcf.edge[i].flow > 0) {
+                AddSomeBandWidth(time, producer_id, mcf.edge[i].to - producer_number, mcf.edge[i].flow);
             }
         }
     }
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].is_full_use_time[time]) {
+            continue ;
+        }
         producers[producer_id].has_cost = max(producers[producer_id].has_cost, 
                                               producers[producer_id].bandwidth - producers[producer_id].time_remain_bandwidth);
     }
@@ -329,6 +422,16 @@ void Work() {
         }
         // 调用不同策略
         WorkTimeMaxFlow(time);
+        // 本地做一下检查
+        if (debug_file != nullptr || result_file != nullptr) {
+            for (int i = 1; i <= producer_number; ++i) {
+                assert(producers[i].time_remain_bandwidth >= 0);
+                producers[i].cost[time] = producers[i].bandwidth - producers[i].time_remain_bandwidth;
+            }
+            for (int i = 1; i <= consumer_number; ++i) {
+                assert(consumers[i].time_need_bandwidth == 0);
+            }
+        }
     }
 }
 
@@ -357,8 +460,17 @@ int main(int argc, char *argv[]) {
         }
     }
     ReadIn();
+    Init();
     Work();
     Output();
+    if (result_file != nullptr) {
+        int sum_cost = 0;
+        for (int i = 1; i <= producer_number; ++i) {
+            sort(producers[i].cost + 1, producers[i].cost + 1 + times);
+            sum_cost += producers[i].cost[cost_max_index];
+        }
+        (*result_file) << "sum_cost: " << sum_cost <<endl;
+    }    
     if (debug_file != nullptr) debug_file->close();
     if (result_file != nullptr) result_file->close();
     return 0;
@@ -509,15 +621,6 @@ void Output() {
         }
     }
     file.close();
-    if (debug_file != nullptr) {
-        for(int time = 1; time <= times; ++time)
-            for (int i = 1; i <= consumer_number; ++i) {
-                if (consumers[i].need_bandwidth[time]) {
-                    (*debug_file) << "check fail !!!" <<endl;
-                    return ;
-                }
-            }
-    }
 }
 
 int StringToInt(string &str) {
