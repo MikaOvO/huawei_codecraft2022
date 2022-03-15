@@ -10,6 +10,7 @@
 #include <queue>
 #include <assert.h>
 #include <unistd.h>
+#include <ctime>
 
 using namespace std;
 
@@ -507,19 +508,23 @@ void Work() {
 int main(int argc, char *argv[]) {
     begin_time = clock();
     // local or oj
+    string info = "";
     for (int i = 1; i < argc; ++i) {
         int len = strlen(argv[i]);
         string tmp = "";
         for (int j = 0; j < len; ++j) tmp += argv[i][j];
         Strip(tmp, '\r');
         vector<string> str_vec = Split(tmp, "=");
+        if (str_vec[0] == "info") {
+            info = str_vec[1];
+        } 
         if (str_vec[0] == "debug_file") {
             debug_file = new ofstream();
             debug_file->open(str_vec[1], ios::out);
         } 
         if (str_vec[0] == "result_file") {
             result_file = new ofstream();
-            result_file->open(str_vec[1], ios::out);
+            result_file->open(str_vec[1], ofstream::app);
         } 
         if (str_vec[0] == "output_dir") {
             output_dir = str_vec[1];
@@ -532,13 +537,18 @@ int main(int argc, char *argv[]) {
     Init();
     Work();
     Output();
-    if (result_file != nullptr) {
+    if (result_file != nullptr && info[0] != '!') {
+        time_t now = time(0);
+        (*result_file) << "info: " << endl;
+        (*result_file) << "time: " << ctime(&now);
         int sum_cost = 0;
         for (int i = 1; i <= producer_number; ++i) {
             sort(producers[i].time_cost + 1, producers[i].time_cost + 1 + times);
             sum_cost += producers[i].time_cost[cost_max_index];
         }
-        (*result_file) << "sum_cost: " << sum_cost <<endl;
+        (*result_file) << "data_dir: " << data_dir <<endl;
+        (*result_file) << "sum_cost: " << sum_cost << " cost_time: " << (double)(clock() - begin_time) / CLOCKS_PER_SEC << "s" << endl;
+        (*result_file) << endl;
     }    
     if (debug_file != nullptr) debug_file->close();
     if (result_file != nullptr) result_file->close();
