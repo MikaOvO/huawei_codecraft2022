@@ -261,15 +261,10 @@ struct Producer {
             has_cost = p[cost_max_index];
         }
         int num = 0;
+        // 并不是真的代表 full use time, 但是如果不这么写可能会有问题, 因为相等的情况下必须把所有相等的全搞下来
         for (int time = 1; time <= times; ++time) {
             if (num == can_full_use_time) break;
             if (time_cost[time] <= p[cost_max_index]) continue;
-            ++num;
-            is_full_use_time[time] = 1;
-        }
-        for (int time = 1; time <= times; ++time) {
-            if (num == can_full_use_time) break;
-            if (time_cost[time] == p[cost_max_index]) continue;
             ++num;
             is_full_use_time[time] = 1;
         }
@@ -731,13 +726,17 @@ void EndWork() {
                     int bandwidth = p.second;
                     for (auto &to_producer_id : consumers[p.first].can_visit_point_vec) {
                         // 从花费大的往小的迁移，理论更好，可以换排序实验，换了以后这里也要换
-                        // if (producers[to_producer_id].waste > producers[from_producer_id].waste) {
-                        //     continue ;
-                        // }
+                        if (k == 1 && producers[to_producer_id].waste > producers[from_producer_id].waste && producers[to_producer_id].is_full_use_time[time] == 0) {
+                            continue ;
+                        }
                         if (to_producer_id == from_producer_id) {
                             continue ;
                         }
                         int tmp = max(0, producers[to_producer_id].has_cost - (producers[to_producer_id].time_cost[time] + tmp_cost[to_producer_id]));
+                        // 5%, 不占花费
+                        if (producers[to_producer_id].is_full_use_time[time]) {
+                            tmp = max(0, producers[to_producer_id].bandwidth - (producers[to_producer_id].time_cost[time] + tmp_cost[to_producer_id]));
+                        }
                         tmp = min(tmp, bandwidth);
                         bandwidth -= tmp;
                         time_win += tmp;
@@ -758,13 +757,16 @@ void EndWork() {
                     int bandwidth = p.second;
                     for (auto &to_producer_id : consumers[p.first].can_visit_point_vec) {
                         // 从花费大的往小的迁移，理论更好，可以换排序实验，换了以后这里也要换
-                        // if (producers[to_producer_id].waste > producers[from_producer_id].waste) {
-                        //     continue ;
-                        // }
+                        if (k == 1 && producers[to_producer_id].waste > producers[from_producer_id].waste && producers[to_producer_id].is_full_use_time[time] == 0) {
+                            continue ;
+                        }
                         if (to_producer_id == from_producer_id) {
                             continue ;
                         }
                         int tmp = max(0, producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time]);
+                        if (producers[to_producer_id].is_full_use_time[time]) {
+                            tmp = max(0, producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]);
+                        }
                         tmp = min(tmp, bandwidth);
                         tmp = min(tmp, time_need_win);
                         bandwidth -= tmp;
