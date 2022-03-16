@@ -244,6 +244,10 @@ struct Producer {
     }
     // 1e6 * 1e4
     long long GetWaste(int update_use_cost=0) {
+        // 重新计算is_full_use_time
+        for (int i = 1; i <= MAXT; ++i) {
+            is_full_use_time[i] = 0;
+        }
         int *p = new int[MAXT];
         for (int time = 1; time <= times; ++time) {
             p[time] = time_cost[time];
@@ -255,6 +259,19 @@ struct Producer {
         }
         if (update_use_cost) {
             has_cost = p[cost_max_index];
+        }
+        int num = 0;
+        for (int time = 1; time <= times; ++time) {
+            if (num == can_full_use_time) break;
+            if (time_cost[time] <= p[cost_max_index]) continue;
+            ++num;
+            is_full_use_time[time] = 1;
+        }
+        for (int time = 1; time <= times; ++time) {
+            if (num == can_full_use_time) break;
+            if (time_cost[time] == p[cost_max_index]) continue;
+            ++num;
+            is_full_use_time[time] = 1;
         }
         delete[] p;
         waste = (long long)cost_max_index * (long long)p[cost_max_index] - ret;
@@ -299,28 +316,19 @@ void Init() {
             }
         }
     }
-
-    int *p = new int[MAXT];
-    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-        // for (int i = 1; i <= cost_max_index; ++i) producers[producer_id].cost_que.push(0);
-        for (int i = 1; i <= times; ++i) p[i] = i;
-        random_shuffle(p + 1, p + 1 + times);
-        for (int i = 1; i <= can_full_use_time; ++i) {
-            producers[producer_id].is_full_use_time[p[i]] = 1;
-        }
-    }
-    delete[] p;
 }
 
 void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int consumer_id, int bandwidth, int update_use_cost=0) {
     if (debug_file != nullptr) {
-        if (time <= 5 && from_producer_id <= 5 && consumer_id <= 5) {
+        if ( time <= 2 && bandwidth > 0 ) {
             (*debug_file) << "MoveSomeBandWidth time: " << time << " from_producer_id: " << from_producer_id
                           << " to_producer_id: " << to_producer_id << " bandwidth: "<< bandwidth <<endl;
         }
     }
     producers[to_producer_id].time_cost[time] += bandwidth;
     producers[from_producer_id].time_cost[time] -= bandwidth;
+
+    // not nodify
 
     info_bandwidth[time][make_pair(from_producer_id, consumer_id)] -= bandwidth;
 
@@ -381,6 +389,7 @@ void PreWork() {
         reverse(can_cost_time.begin(), can_cost_time.end());
         for (int i = 0; i < can_full_use_time; ++i) {
             int time = can_cost_time[i].second;
+            producers[producer_id].is_full_use_time[time] = 1;
             // 也许这里平均分也会好一点？
             int block = max(1, (producers[producer_id].bandwidth - producers[producer_id].time_cost[time]) / 1000);
             block = 5000;
@@ -686,13 +695,98 @@ void Work() {
     }
 }
 
-vector<pair<int, int> > producer_vec; // waste, producer 
-vector<pair<int, int> > time_vec; // time_cost, time
-vector<pair<int, int> > cost_info_vec[MAXT]; // index: time -> consumer, bandwidth
+vector<pair<int, int> > has_cost_vec[MAXT]; // consumer, bandwidth
 void EndWork() {
+    // 重新计算has cost以后不去改变has cost，因此答案不会变劣
+    int* tmp_cost = new int[MAXM]; //记录一下每个其他边缘暂时花了多少
+    vector<pair<long long, int> > producer_vec; // waste, producer 
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-        producers[producer_id].GetWaste();
+        producers[producer_id].GetWaste(1);
+        producer_vec.emplace_back(make_pair(producers[producer_id].waste, producer_id));
     }
+    sort(producer_vec.begin(), producer_vec.end());
+    reverse(producer_vec.begin(), producer_vec.end());
+    for (int k = 1; k <= 30; ++k) {   
+        int continue_flag = 0;
+        for (int i = 0; i < producer_number; ++i) {
+            int from_producer_id = producer_vec[i].second;
+            for (int time = 1; time <= times; ++time) {
+                has_cost_vec[time].clear();
+                for(auto& p : info_bandwidth[time]) {
+                    if (p.first.first == from_producer_id) {
+                        has_cost_vec[time].emplace_back(make_pair(p.first.second, p.second));
+                    }
+                }
+            }
+            int min_can_has_cost = 0; // 能把耗费优化到多少，因为只考虑最大的，所以迁移一堆不一定合适，迁移到这个点就可以了
+            for (int time = 1; time <= times; ++time) {
+                if (producers[from_producer_id].is_full_use_time[time]) {
+                    continue ;
+                }
+                for (int j = 1; j <= producer_number; ++j) {
+                    tmp_cost[j] = 0;
+                }
+                int time_win = 0;
+                for (auto& p : has_cost_vec[time]) {
+                    int bandwidth = p.second;
+                    for (auto &to_producer_id : consumers[p.first].can_visit_point_vec) {
+                        // 从花费大的往小的迁移，理论更好，可以换排序实验，换了以后这里也要换
+                        // if (producers[to_producer_id].waste > producers[from_producer_id].waste) {
+                        //     continue ;
+                        // }
+                        if (to_producer_id == from_producer_id) {
+                            continue ;
+                        }
+                        int tmp = max(0, producers[to_producer_id].has_cost - (producers[to_producer_id].time_cost[time] + tmp_cost[to_producer_id]));
+                        tmp = min(tmp, bandwidth);
+                        bandwidth -= tmp;
+                        time_win += tmp;
+                        tmp_cost[to_producer_id] += tmp;
+                    }
+                }
+                min_can_has_cost = max(min_can_has_cost, producers[from_producer_id].time_cost[time] - time_win);
+            }
+            for (int time = 1; time <= times; ++time) {
+                if (producers[from_producer_id].is_full_use_time[time]) {
+                    continue ;
+                }
+                int time_need_win = max(0, producers[from_producer_id].time_cost[time] - min_can_has_cost);
+                for (auto& p : has_cost_vec[time]) {
+                    if (time_need_win == 0) {
+                        break ;
+                    }
+                    int bandwidth = p.second;
+                    for (auto &to_producer_id : consumers[p.first].can_visit_point_vec) {
+                        // 从花费大的往小的迁移，理论更好，可以换排序实验，换了以后这里也要换
+                        // if (producers[to_producer_id].waste > producers[from_producer_id].waste) {
+                        //     continue ;
+                        // }
+                        if (to_producer_id == from_producer_id) {
+                            continue ;
+                        }
+                        int tmp = max(0, producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time]);
+                        tmp = min(tmp, bandwidth);
+                        tmp = min(tmp, time_need_win);
+                        bandwidth -= tmp;
+                        time_need_win -= tmp;
+                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, p.first, tmp);
+                    }
+                }
+            }
+            if (debug_file != nullptr) {
+                (*debug_file) << "end_work, producer_id: " << from_producer_id << " can win: " 
+                            << producers[from_producer_id].has_cost - min_can_has_cost << " bandwidth." <<endl;
+            }
+            if (producers[from_producer_id].has_cost > min_can_has_cost) {
+                continue_flag = 1;
+            }
+            producers[from_producer_id].has_cost = min_can_has_cost;
+        }
+        if (continue_flag == 0) {
+            break ;
+        }
+    }
+    delete[] tmp_cost;
 }
 
 int main(int argc, char *argv[]) {
@@ -726,6 +820,7 @@ int main(int argc, char *argv[]) {
     ReadIn();
     Init();
     Work();
+    EndWork();
     Output();
     if (result_file != nullptr && info[0] != '!') {
         time_t now = time(0);

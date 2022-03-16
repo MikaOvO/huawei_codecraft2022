@@ -11,7 +11,7 @@ main_file = os.getcwd() + '\SDK_C++\CodeCraft-2022\src\CodeCraft-2022.cpp'
 for path, dir_list, _ in os.walk(data_dir):
     for dir in dir_list:
         ## only run sample
-        ## if dir != 'sample':
+        ##if dir != 'data1':
         ##   continue
         data_child_dir = os.path.join(path, dir)
         solution_dir = output_dir + '\\' + dir
