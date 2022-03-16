@@ -220,6 +220,7 @@ struct Producer {
     int bandwidth;
     int has_cost;
     int has_use_full_time;
+    long long waste;
     int can_visit_point[MAXM];
     vector<int> can_visit_point_vec;
     int need_time_cost_sum[MAXT];
@@ -256,7 +257,8 @@ struct Producer {
             has_cost = p[cost_max_index];
         }
         delete[] p;
-        return (long long)cost_max_index * (long long)p[cost_max_index] - ret;
+        waste = (long long)cost_max_index * (long long)p[cost_max_index] - ret;
+        return waste;
     }
 } producers[MAXN];
 
@@ -381,7 +383,8 @@ void PreWork() {
             int time = can_cost_time[i].second;
             // 也许这里平均分也会好一点？
             int block = max(1, (producers[producer_id].bandwidth - producers[producer_id].time_cost[time]) / 1000);
-            for (int k = 1; k <= 1000; ++k) {
+            block = 5000;
+            for (int k = 1; k <= 2000; ++k) {
                 for (auto& cp : consumer_tmp) {
                     int consumer_id = cp.second;
                     if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
@@ -487,6 +490,7 @@ void WorkTimeBaseline(int time) {
         //     AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);
         // }
         int block = max(1, consumers[consumer_id].time_need[time] / producer_number);
+        block = 5000;
         // 这里没必要135。。随便设置的，最差情况应该是135？
         // 先分配不花钱的（理论不花钱，实际上？
         for (int k = 1; k <= 135; ++k) {
@@ -667,7 +671,7 @@ void Work() {
         
         // 调用不同策略
         WorkTimeBaseline(time);
-        //WorkTimeMaxFlow(time);
+        // WorkTimeMaxFlow(time);
         
         // 本地做一下检查
         if (debug_file != nullptr || result_file != nullptr) {
@@ -682,8 +686,13 @@ void Work() {
     }
 }
 
+vector<pair<int, int> > producer_vec; // waste, producer 
+vector<pair<int, int> > time_vec; // time_cost, time
+vector<pair<int, int> > cost_info_vec[MAXT]; // index: time -> consumer, bandwidth
 void EndWork() {
-
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        producers[producer_id].GetWaste();
+    }
 }
 
 int main(int argc, char *argv[]) {
