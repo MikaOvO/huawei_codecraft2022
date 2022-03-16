@@ -354,7 +354,13 @@ void PreWork() {
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         tmp.emplace_back(make_pair(producers[producer_id].can_visit_point_vec.size(), producer_id));
     }
-    // 从度数小的开始
+    vector<pair<int,int> > consumer_tmp;  
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        consumer_tmp.emplace_back(make_pair(consumers[consumer_id].can_visit_point_vec.size(), consumer_id));
+    }
+    // 客户从度数小的先开始
+    sort(consumer_tmp.begin(), consumer_tmp.end());
+    // 边缘从度数小的开始
     sort(tmp.begin(), tmp.end());
     for (auto& p : tmp) {
         int producer_id = p.second;
@@ -373,14 +379,20 @@ void PreWork() {
         reverse(can_cost_time.begin(), can_cost_time.end());
         for (int i = 0; i < can_full_use_time; ++i) {
             int time = can_cost_time[i].second;
-            for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
-                if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
-                    continue;
+            // 也许这里平均分也会好一点？
+            int block = max(1, (producers[producer_id].bandwidth - producers[producer_id].time_cost[time]) / 1000);
+            for (int k = 1; k <= 1000; ++k) {
+                for (auto& cp : consumer_tmp) {
+                    int consumer_id = cp.second;
+                    if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                        continue;
+                    }
+                    int cost_bandwidth = min(producers[producer_id].bandwidth - producers[producer_id].time_cost[time],
+                                        consumers[consumer_id].time_need[time]);
+                    cost_bandwidth = min(cost_bandwidth, block);
+                    if (cost_bandwidth == 0) continue;
+                    AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);               
                 }
-                int cost_bandwidth = min(producers[producer_id].bandwidth - producers[producer_id].time_cost[time],
-                                     consumers[consumer_id].time_need[time]);
-                if (cost_bandwidth == 0) continue;
-                AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth);               
             }
         }
     }
@@ -453,10 +465,17 @@ void WorkTimeBaseline(int time) {
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         tmp.emplace_back(make_pair(producers[producer_id].can_visit_point_vec.size(), producer_id));
     }
-    // 从度数大的开始
+    vector<pair<int,int> > consumer_tmp;  
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        consumer_tmp.emplace_back(make_pair(consumers[consumer_id].can_visit_point_vec.size(), consumer_id));
+    }
+    // 客户从度数小的先开始
+    sort(consumer_tmp.begin(), consumer_tmp.end());
+    // 边缘从度数大的开始
     sort(tmp.begin(), tmp.end());
     reverse(tmp.begin(), tmp.end());
-    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+    for (auto &cp : consumer_tmp) {
+        int consumer_id = cp.second;
         // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         //     if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
         //         continue;
