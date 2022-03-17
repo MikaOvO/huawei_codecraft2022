@@ -8,10 +8,12 @@ output_dir = os.getcwd() + '\\output'
 
 main_file = os.getcwd() + '\SDK_C++\CodeCraft-2022\src\CodeCraft-2022.cpp'
 
+os.system('g++ -o codecraft.exe %s' % (main_file))
+
 for path, dir_list, _ in os.walk(data_dir):
     for dir in dir_list:
         ## only run sample
-        ##if dir != 'data1':
+        ## if dir != 'data0_full':
         ##   continue
         data_child_dir = os.path.join(path, dir)
         solution_dir = output_dir + '\\' + dir
@@ -25,5 +27,4 @@ for path, dir_list, _ in os.walk(data_dir):
                  (info, data_child_dir, solution_dir + '\\' + 'debug.txt', solution_dir ,  result_file)
         ##
         
-        os.system('g++ -o codecraft.exe %s' % (main_file))
         os.system('codecraft.exe%s' % (params))
