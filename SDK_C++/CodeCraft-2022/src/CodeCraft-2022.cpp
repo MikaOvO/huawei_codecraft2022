@@ -19,6 +19,7 @@ ofstream *result_file = nullptr;
 
 string output_dir = "/output";
 string data_dir = "/data";
+string info = "";
 
 const int MAXT = 8928 + 1;
 const int MAXM = 135 + 1;
@@ -465,14 +466,21 @@ void PreWork() {
     //                       << " use: " << can_max_use
     //                       << " time_sum_cost: " << time_sum_use <<endl;
     //     }
-    //     for (auto& p : consumer_tmp) {
-    //         int consumer_id = p.second;
-    //         if (consumers[consumer_id].can_visit_point[best_producer_id] == 0) {
-    //             continue;
+    //     int block = 5000;
+    //     for (int k = 1; k <= 2000; ++k) {
+    //         if (producers[best_producer_id].TimeRemain(best_time) == 0) {
+    //             break ;
     //         }
-    //         int cost_bandwidth = min(producers[best_producer_id].TimeRemain(best_time), consumers[consumer_id].time_need[best_time]);
-    //         if (cost_bandwidth == 0) continue;
-    //         AddSomeBandWidth(best_time, best_producer_id, consumer_id, cost_bandwidth);   
+    //         for (auto& p : consumer_tmp) {
+    //             int consumer_id = p.second;
+    //             if (consumers[consumer_id].can_visit_point[best_producer_id] == 0) {
+    //                 continue;
+    //             }
+    //             int cost_bandwidth = min(producers[best_producer_id].TimeRemain(best_time), consumers[consumer_id].time_need[best_time]);
+    //             cost_bandwidth = min(cost_bandwidth, block);
+    //             if (cost_bandwidth == 0) continue;
+    //             AddSomeBandWidth(best_time, best_producer_id, consumer_id, cost_bandwidth);   
+    //         }
     //     }
     // }
 
@@ -559,12 +567,24 @@ void WorkTimeMaxFlow(int time,int only_use_has_cost=0) {
         }
     }
 }
-
+int vis_time[MAXT];
 void WorkTimeBaseline(int time, int time_index) {
+    if (debug_file != nullptr) {
+        (*debug_file) << "time: " << time << " " << time_index << endl; 
+        int sum_cost = 0;
+        for (int i = 1; i <= consumer_number; ++i) sum_cost += consumers[i].time_need[time];
+        (*debug_file) << "need cost: " << sum_cost << " " << time_node[time].sum_cost << endl; 
+    }
     vector<pair<int,int> > can_cost_time;
-    vector<pair<int,int> > tmp;  
+    vector<pair<pair<int,int>,int> > tmp;  
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-        tmp.emplace_back(make_pair(producers[producer_id].can_visit_point_vec.size(), producer_id));
+        int min_sum_cost = 1000000000;
+        for (int time = 1; time <= times; ++time) {
+            if(vis_time[time] == 0)
+                min_sum_cost = min(min_sum_cost, producers[producer_id].need_time_cost_sum[time]);
+        }
+        tmp.emplace_back(make_pair(make_pair(producers[producer_id].can_visit_point_vec.size(), 0)
+                                    , producer_id));
     }
     vector<pair<int,int> > consumer_tmp;  
     for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
@@ -591,12 +611,13 @@ void WorkTimeBaseline(int time, int time_index) {
         block = 5000;
         // 这里没必要135。。随便设置的，最差情况应该是135？
         // 先分配不花钱的（理论不花钱，实际上？
-        if (time_index <= 400) {
+        if (time_index <= 10000) {
             for (int k = 1; k <= 135; ++k) {
                 if (consumers[consumer_id].time_need[time] == 0) {
                     break ;
                 }
-                for (auto &p : tmp) {
+                for(int i = tmp.size() - 1; i >= 0 ; --i) {
+                    auto& p = tmp[i];
                     int producer_id = p.second;
                     if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
                         continue;
@@ -712,8 +733,43 @@ void WorkTimeMinCostFlow(int time) {
 }
 void EndWork();
 void Work() {
+    // 求完全图下的比较优解 解法有问题
+    // #define ll long long
+    // vector<ll> vec; ll sum=0;
+    // priority_queue<ll> cque;
+    // priority_queue<pair<ll,int>> pque;
+    // for(int i=1;i<=producer_number;++i) pque.push(make_pair(producers[i].bandwidth, can_full_use_time));
+    // for(int i=1;i<=times;i++)
+    // {
+    //     ll tmp = 0;
+    //     for(int j=1;j<=consumer_number;j++) tmp+=consumers[j].time_need[i];
+    //     cque.push(tmp);
+    // }
+    // ll ans; pair<ll,int> p;
+    // while(pque.size())
+    // {
+    //     p=pque.top(); pque.pop();
+    //     ll tmp=cque.top(); cque.pop();
+    //     tmp-=p.first;
+    //     cque.push(tmp);
+    //     p.second--;
+    //     if(p.second) pque.push(make_pair(p.first,p.second));
+    // }
+    // ans=cque.top();
+    // cout<<output_dir<<" "<<ans<<endl;
+    
     // 提前处理5%
     PreWork();
+
+    // 处理5%后的理论最小耗费
+    int max_sum_cost = 0;
+    for (int i = 1; i <= times; ++i) {
+        max_sum_cost = max(max_sum_cost, time_node[i].sum_cost);
+    }
+    if (result_file != nullptr && info[0] != '!') {
+        (*result_file) << "after 5%, max_sum_cost: " << max_sum_cost << endl;
+    }
+
     vector<pair<int,int> > time_cost_vec; // time_sum_cost, time
     for (int time = 1; time <= times; ++time) {
         int sum_cost = 0;
@@ -732,6 +788,8 @@ void Work() {
         WorkTimeBaseline(time, index);
         // WorkTimeMaxFlow(time);
         
+        vis_time[time] = 1;
+
         if (index % 1000 == 0) EndWork();
 
         // 本地做一下检查
@@ -743,6 +801,79 @@ void Work() {
             for (int i = 1; i <= consumer_number; ++i) {
                 // assert(consumers[i].time_need[time] == 0);
             }
+        }
+    }
+}
+
+void Work2() {
+    PreWork();
+
+    // 处理5%后的理论最小耗费
+    int max_sum_cost = 0;
+    for (int i = 1; i <= times; ++i) {
+        max_sum_cost = max(max_sum_cost, time_node[i].sum_cost);
+    }
+    if (result_file != nullptr && info[0] != '!') {
+        (*result_file) << "after 5%, max_sum_cost: " << max_sum_cost << endl;
+    }
+
+    vector<pair<int,int> > consumer_tmp;  
+    for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+        consumer_tmp.emplace_back(make_pair(consumers[consumer_id].can_visit_point_vec.size(), consumer_id));
+    }
+    // 客户从度数小的先开始
+    sort(consumer_tmp.begin(), consumer_tmp.end());
+    int* producer_vis = new int[MAXN];
+    for (int i = 1; i <= producer_number; ++i) producer_vis[i] = 0;
+    for (int k = 1; k <= 135; ++k) {
+        int best_producer_id = -1, max_win = 30 * 10000000; long long min_waste = (long long)1e18;
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            if (producer_vis[producer_id]) continue;
+            int win = 0;
+            long long waste = 0;
+            long long max_use = 0;
+            for (int time = 1; time <= times; ++time) {
+                win = max(win, time_node[time].sum_cost - min(producers[producer_id].need_time_cost_sum[time], 
+                                                              producers[producer_id].TimeRemain(time)));
+                max_use = max(max_use, (long long)min(producers[producer_id].need_time_cost_sum[time], 
+                                                      producers[producer_id].TimeRemain(time)));
+            }
+            for (int time = 1; time <= times; ++time) {
+                waste += max_use - (long long)min(producers[producer_id].need_time_cost_sum[time], 
+                                                      producers[producer_id].TimeRemain(time));
+            }
+            if (waste < min_waste || waste == min_waste && win < max_win) {
+                best_producer_id = producer_id;
+                max_win = win;
+                min_waste = waste;
+            }
+        }
+        producer_vis[best_producer_id] = 1;
+        int block = 5000000;
+        for (int time = 1; time <= times; ++time) {
+            for (int j = 1; j <= 2; ++j) {
+                if (producers[best_producer_id].TimeRemain(time) == 0) {
+                    break ;
+                }
+                for (auto& p : consumer_tmp) {
+                    int consumer_id = p.second;
+                    if (consumers[consumer_id].can_visit_point[best_producer_id] == 0) {
+                        continue;
+                    }
+                    int cost_bandwidth = min(producers[best_producer_id].TimeRemain(time), consumers[consumer_id].time_need[time]);
+                    cost_bandwidth = min(cost_bandwidth, block);
+                    if (cost_bandwidth == 0) continue;
+                    AddSomeBandWidth(time, best_producer_id, consumer_id, cost_bandwidth);   
+                }
+            }
+        }
+        if (debug_file != nullptr) {
+            (*debug_file) << "work2, producer_id: " << best_producer_id
+                          << "win: " <<max_win 
+                          << "bandwidth: " <<producers[best_producer_id].bandwidth <<endl;
+        }
+        if (max_win == 0) {
+            break ;
         }
     }
 }
@@ -851,7 +982,7 @@ void EndWork() {
 int main(int argc, char *argv[]) {
     begin_time = clock();
     // local or oj
-    string info = "";
+    ::info = "";
     for (int i = 1; i < argc; ++i) {
         int len = strlen(argv[i]);
         string tmp = "";
@@ -876,15 +1007,17 @@ int main(int argc, char *argv[]) {
             data_dir = str_vec[1];
         }
     }
+    if (result_file != nullptr && info[0] != '!') {
+        time_t now = time(0);
+        (*result_file) << "info: " << endl;
+        (*result_file) << "time: " << ctime(&now);
+    }
     ReadIn();
     Init();
     Work();
     EndWork();
     Output();
     if (result_file != nullptr && info[0] != '!') {
-        time_t now = time(0);
-        (*result_file) << "info: " << endl;
-        (*result_file) << "time: " << ctime(&now);
         int sum_cost = 0;
         int check_flag = 1;
         for (int i = 1; i <= consumer_number; ++i) {
