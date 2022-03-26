@@ -288,7 +288,6 @@ struct Producer {
         }
         int *indexs = new int[MAXT];
         for (int time = 1; time <= times; ++time) indexs[time] = time;
-        random_shuffle(indexs + 1, indexs + 1 + times);
         for (int i = 1; i <= times; ++i) {
             int time = indexs[i];
             if (num == can_full_use_time) break;
@@ -1028,7 +1027,7 @@ void Work() {
         
         vis_time[time] = 1;
 
-        if (index % 1000 == 0) EndWork();
+        if (index % 2000 == 0) EndWork();
 
         // 本地做一下检查
         if (debug_file != nullptr && is_ab == 0 || result_file != nullptr) {
