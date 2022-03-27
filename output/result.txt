@@ -3217,3 +3217,130 @@ after 5%, max_sum_cost: 544405
 data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\data0_full
 sum_cost: 574084 cost_time: 171.898s
 
+
+
+
+
+info: 两种流 
+time: Sun Mar 27 15:23:12 2022
+after 5%, max_sum_cost: 449644
+info: 
+time: Sun Mar 27 15:27:03 2022
+after 5%, max_sum_cost: 44041014
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46585385 cost_time: 1.646s
+
+info: 
+time: Sun Mar 27 15:27:05 2022
+after 5%, max_sum_cost: 449644
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 486219 cost_time: 16.465s
+
+info: 
+info: 
+time: Sun Mar 27 17:03:57 2022
+after 5%, max_sum_cost: 44041014
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46957511 cost_time: 2.239s
+
+info: 
+time: Sun Mar 27 17:04:00 2022
+after 5%, max_sum_cost: 449644
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 481400 cost_time: 22.132s
+
+
+
+
+info: 
+time: Sun Mar 27 17:42:27 2022
+after 5%, max_sum_cost: 46176701
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46329645 cost_time: 4.968s
+
+info: 
+time: Sun Mar 27 17:42:32 2022
+after 5%, max_sum_cost: 459715
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 481657 cost_time: 59.768s
+
+info: 
+info: 
+time: Sun Mar 27 17:43:37 2022
+after 5%, max_sum_cost: 45522026
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46463200 cost_time: 4.706s
+
+info: 
+info: 
+time: Sun Mar 27 17:48:04 2022
+after 5%, max_sum_cost: 45249829
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46384978 cost_time: 4.562s
+
+info: 
+info: 
+time: Sun Mar 27 17:49:31 2022
+after 5%, max_sum_cost: 45455446
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46686848 cost_time: 4.751s
+
+info: 目前找到的最优答案也许会比最终答案好一点，在想怎么记录下来
+
+
+
+info: 
+info: 
+info: 
+info: 
+info: 
+info: 
+info: 
+info: 
+time: Sun Mar 27 18:22:39 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46322313 cost_time: 4.348s
+
+info: 
+time: Sun Mar 27 18:22:43 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 474635 cost_time: 56.637s
+
+info: 
+info: 
+time: Sun Mar 27 18:25:27 2022
+after 5%, max_sum_cost: 44041014
+after 5%, max_sum_cost: 45212709
+after 5%, max_sum_cost: 45483563
+after 5%, max_sum_cost: 45754162
+after 5%, max_sum_cost: 45244649
+after 5%, max_sum_cost: 45257764
+after 5%, max_sum_cost: 45755379
+after 5%, max_sum_cost: 46371646
+after 5%, max_sum_cost: 44807926
+after 5%, max_sum_cost: 44852914
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46323833 cost_time: 4.392s
+
+info: 
+time: Sun Mar 27 18:25:31 2022
+after 5%, max_sum_cost: 449644
+after 5%, max_sum_cost: 468989
+after 5%, max_sum_cost: 466199
+after 5%, max_sum_cost: 458230
+after 5%, max_sum_cost: 459709
+after 5%, max_sum_cost: 456126
+after 5%, max_sum_cost: 464679
+after 5%, max_sum_cost: 466941
+after 5%, max_sum_cost: 458224
+info: 
+time: Sun Mar 27 18:27:12 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46450343 cost_time: 3.828s
+
+info: 
+time: Sun Mar 27 18:27:16 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 478736 cost_time: 51.643s
+
+info: 
