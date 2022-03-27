@@ -3198,3 +3198,22 @@ info:
 
 
 
+info: 
+info: 5% 后加average调整
+time: Sun Mar 27 13:52:16 2022
+after 5%, max_sum_cost: 43631342
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46932673 cost_time: 1.174s
+
+info: 
+time: Sun Mar 27 13:52:17 2022
+after 5%, max_sum_cost: 456512
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 480920 cost_time: 11.324s
+
+info: 
+time: Sun Mar 27 13:52:28 2022
+after 5%, max_sum_cost: 544405
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\data0_full
+sum_cost: 574084 cost_time: 171.898s
+

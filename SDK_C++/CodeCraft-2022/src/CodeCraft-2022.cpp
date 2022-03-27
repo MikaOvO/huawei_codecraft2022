@@ -632,7 +632,7 @@ void PreWork() {
                           << " time_sum_cost: " << time_sum_use <<endl;
         }
         int block = 2000;
-        for (int k = 1; k <= 1000; ++k) {
+        for (int ik = 1; ik <= 1; ++ik) {
             if (producers[best_producer_id].TimeRemain(best_time) == 0) {
                 break ;
             }
@@ -673,7 +673,7 @@ void PreWork() {
 
 
     // 尝试更平均一点？
-    // for (int k = 1; k <= 10; ++k) {
+    // for (int k = 1; k <= 1000; ++k) {
     //     int max_time_id, max_time = -1;
     //     for (int i = 1; i <= times; ++i) {
     //         if (time_node[i].sum_cost > max_time) {
@@ -681,11 +681,63 @@ void PreWork() {
     //             max_time_id = i;
     //         }
     //     }
+        
+    //     int best_producer_id = -1, best_time = -1, best_value = 100000000;
     //     for (int time = 1; time <= times; ++time) {
     //         if (time == max_time_id) continue;
-    //         for (int producer_id = 1; producer_id <= producer_number; ++producer_number) {
-    //             if ()
+    //         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+    //             if (producers[producer_id].is_full_use_time[time] == 0) continue;   
+    //             if (producers[producer_id].is_full_use_time[max_time_id] == 1) continue;   
+    //             if (producers[producer_id].time_cost[time] > producers[producer_id].need_time_cost_sum[time]) continue;
+    //             // 这里注意下是bandwidth
+    //             int tmp = max(time_node[time].sum_cost + min(producers[producer_id].bandwidth,  producers[producer_id].need_time_cost_sum[time]),
+    //                           time_node[max_time_id].sum_cost - min(producers[producer_id].bandwidth,  producers[producer_id].need_time_cost_sum[max_time_id]));
+    //             if (best_value > tmp) {
+    //                 best_value = tmp;
+    //                 best_producer_id = producer_id;
+    //                 best_time = time;
+    //             }
     //         }
+    //     }
+
+    //     if (debug_file != nullptr && is_ab == 0) {
+    //         (*debug_file) << "average 5%, producer_id: " << best_producer_id
+    //                       << " bandwidth: " << producers[best_producer_id].bandwidth
+    //                       << " best_value: " << best_value
+    //                       << " max_time_id: " << max_time_id
+    //                       << " best_time: " << best_time
+    //                       << endl;
+    //     }
+    //     if (debug_file != nullptr && is_ab == 0) {
+    //         (*debug_file) << "before, " << time_node[best_time].sum_cost << " " << time_node[max_time_id].sum_cost << endl;
+    //     }
+    //     if (best_producer_id == -1) break;
+    //     // if (best_value > max_time) break;
+
+    //     // 退流，可能为负数，小概率会导致坑
+    //     for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+    //         if (info_bandwidth[best_time][best_producer_id][consumer_id]) 
+    //             AddSomeBandWidth(best_time, best_producer_id, consumer_id, -info_bandwidth[best_time][best_producer_id][consumer_id], 0, 1);
+    //     }
+        
+    //     int block = 2000;
+    //     for (int ik = 1; ik <= 1; ++ik) {
+    //         if (producers[best_producer_id].TimeRemain(max_time_id) == 0) {
+    //             break ;
+    //         }
+    //         for (auto& p : consumer_tmp) {
+    //             int consumer_id = p.second;
+    //             if (consumers[consumer_id].can_visit_point[best_producer_id] == 0) {
+    //                 continue;
+    //             }
+    //             int cost_bandwidth = min(producers[best_producer_id].TimeRemain(max_time_id), consumers[consumer_id].time_need[best_time]);
+    //             // cost_bandwidth = min(cost_bandwidth, block);
+    //             if (cost_bandwidth == 0) continue;
+    //             AddSomeBandWidth(max_time_id, best_producer_id, consumer_id, cost_bandwidth, 0, 1);   
+    //         }
+    //     }       
+    //     if (debug_file != nullptr && is_ab == 0) {
+    //         (*debug_file) << "after, " << time_node[best_time].sum_cost << " " << time_node[max_time_id].sum_cost << endl;
     //     }
     // }
 }
@@ -774,21 +826,21 @@ void AverageAdd(int time, int consumer_id, int is_only_use_has_cost) {
         else
             AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 1, 1); 
     } 
-    reverse(vec.begin(), vec.end());
-    for (int i = 0; i < vec.size(); ++i) {
-        if (consumers[consumer_id].time_need[time] == 0) break;
-        producer_id = vec[i].second;
-        if (is_only_use_has_cost)
-            tmp = max(0, producers[producer_id].has_cost - producers[producer_id].time_cost[time]);
-        else
-            tmp = producers[producer_id].bandwidth - producers[producer_id].time_cost[time];
-        cost_bandwidth = min(tmp, consumers[consumer_id].time_need[time]);
-        int producer_id = vec[i].second;
-        if (is_only_use_has_cost)
-            AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 0, 1);
-        else
-            AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 1, 1); 
-    } 
+    // reverse(vec.begin(), vec.end());
+    // for (int i = 0; i < vec.size(); ++i) {
+    //     if (consumers[consumer_id].time_need[time] == 0) break;
+    //     producer_id = vec[i].second;
+    //     if (is_only_use_has_cost)
+    //         tmp = max(0, producers[producer_id].has_cost - producers[producer_id].time_cost[time]);
+    //     else
+    //         tmp = producers[producer_id].bandwidth - producers[producer_id].time_cost[time];
+    //     cost_bandwidth = min(tmp, consumers[consumer_id].time_need[time]);
+    //     int producer_id = vec[i].second;
+    //     if (is_only_use_has_cost)
+    //         AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 0, 1);
+    //     else
+    //         AddSomeBandWidth(time, producer_id, consumer_id, cost_bandwidth, 1, 1); 
+    // } 
 }
 
 int vis_time[MAXT];
