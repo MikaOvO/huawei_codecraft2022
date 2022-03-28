@@ -3343,4 +3343,57 @@ time: Sun Mar 27 18:27:16 2022
 data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
 sum_cost: 478736 cost_time: 51.643s
 
+
+
+
 info: 
+time: Sun Mar 27 23:40:53 2022
+true_answer: 45335327
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46358584 cost_time: 2.526s
+
+info: 
+time: Sun Mar 27 23:40:56 2022
+true_answer: 458348
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 475649 cost_time: 44.966s
+
+time: Sun Mar 27 23:59:42 2022
+true_answer: 547081
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\data0_full
+sum_cost: 573499 cost_time: 774.292s
+
+info: 
+time: Mon Mar 28 00:16:08 2022
+true_answer: -2183050
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 8941 cost_time: 1.676s
+
+
+info: 时间测试 
+time: Mon Mar 28 13:46:54 2022
+true_answer: 45335327
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46163339 cost_time: 2.574s
+
+info: 
+time: Mon Mar 28 13:46:57 2022
+true_answer: 458348
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\cdip_data
+sum_cost: 475814 cost_time: 40.973s
+
+
+info: 
+time: Mon Mar 28 17:33:06 2022
+true_answer: 458348
+info: 
+time: Mon Mar 28 17:34:41 2022
+true_answer: 45335327
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\b_data
+sum_cost: 46230451 cost_time: 2.506s
+
+info: 
+time: Mon Mar 28 17:34:43 2022
+true_answer: 458348
+
+
