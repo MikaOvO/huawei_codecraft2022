@@ -1,0 +1,6 @@
+CB:<S1,XH,XP>
+CA:<S1,XH,XP>
+CE:
+CB:<S1,XH,XU>
+CA:<S1,XH,XU>
+CE:<S1,XU>
