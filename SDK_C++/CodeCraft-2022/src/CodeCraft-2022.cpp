@@ -542,7 +542,7 @@ void WorkTimeBaseline(int time, int time_index) {
     vector<P> f_producer_vec;
     vector<RP> f_consumer_vec;
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-        if (producers[producer_id].is_full_use_time[time]) {
+        if (producers[producer_id].is_full_use_time[time] == 0) {
             f_producer_vec.emplace_back(P(producers[producer_id].has_cost, producer_id));
         }
     }
