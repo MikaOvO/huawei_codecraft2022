@@ -13,3 +13,106 @@ time: Thu Mar 31 23:10:28 2022
 data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
 sum_cost: 145889 cost_time: 0.471s
 
+
+
+
+
+info: baseline + 5%
+time: Thu Mar 31 23:54:20 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 24506 cost_time: 0.002s
+
+info: 
+time: Thu Mar 31 23:54:20 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 95196 cost_time: 0.514s
+
+info: 
+time: Thu Mar 31 23:54:20 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 93913 cost_time: 0.491s
+
+
+
+info: 前面基础上先放不花钱的
+time: Fri Apr 01 00:04:46 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 24506 cost_time: 0.005s
+
+info: 
+time: Fri Apr 01 00:04:46 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 71057 cost_time: 0.765s
+
+info: 
+time: Fri Apr 01 00:04:47 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 70037 cost_time: 0.753s
+
+
+
+info: 每次挑花费增长最少的放
+time: Fri Apr 01 00:25:21 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 21363 cost_time: 0.002s
+
+info: 
+time: Fri Apr 01 00:25:21 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 51999 cost_time: 0.51s
+
+info: 
+time: Fri Apr 01 00:25:21 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 62008 cost_time: 0.493s
+
+info: hascost为0的时候更新为basecost，答案无影响（符合预期）
+time: Fri Apr 01 11:18:02 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 21363 cost_time: 0s
+
+info: 
+time: Fri Apr 01 11:18:02 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 51999 cost_time: 0.52s
+
+info: 
+time: Fri Apr 01 11:18:03 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 62008 cost_time: 0.528s
+
+
+
+info: producer按Ci降序（有base_cost肯定会好一点），线上115
+time: Fri Apr 01 11:33:34 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 21363 cost_time: 0s
+
+info: 
+time: Fri Apr 01 11:33:34 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 58215 cost_time: 0.568s
+
+info: 
+time: Fri Apr 01 11:33:34 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 59901 cost_time: 0.556s
+
+
+
+
+info: 
+time: Fri Apr 01 12:08:32 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\sample
+sum_cost: 21363 cost_time: 0.003s
+
+info: 
+time: Fri Apr 01 12:08:32 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test
+sum_cost: 52107 cost_time: 0.556s
+
+info: 
+time: Fri Apr 01 12:08:32 2022
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\test2
+sum_cost: 78723 cost_time: 0.588s
+

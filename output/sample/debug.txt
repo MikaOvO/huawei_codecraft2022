@@ -24,27 +24,38 @@ producers 2 consumers: 3 has edge.
 producers 3 consumers: 1 has edge.
 producers 3 consumers: 2 has edge.
 producers 3 consumers: 3 has edge.
-read cost 0.001s.
+read cost 0.002s.
 cost_max_index: 2
-AddSomeBandWidth time: 1 producer_id: 1 consumer_id: 1 stream_id: 1 bandwidth: 6056
+prework5%:
+ producer_id: 1 bandwidth: 81920
+ 0
+ producer_id: 2 bandwidth: 87040
+ 0
+ producer_id: 3 bandwidth: 74586
+ 0
+
+prework_time_cost: 0s
+AddSomeBandWidth time: 1 producer_id: 2 consumer_id: 1 stream_id: 1 bandwidth: 6056
 AddSomeBandWidth time: 1 producer_id: 1 consumer_id: 1 stream_id: 2 bandwidth: 5120
-AddSomeBandWidth time: 1 producer_id: 1 consumer_id: 2 stream_id: 1 bandwidth: 7800
+AddSomeBandWidth time: 1 producer_id: 3 consumer_id: 2 stream_id: 1 bandwidth: 7800
 AddSomeBandWidth time: 1 producer_id: 1 consumer_id: 2 stream_id: 2 bandwidth: 900
-AddSomeBandWidth time: 2 producer_id: 1 consumer_id: 1 stream_id: 1 bandwidth: 5890
+workbaseline_time_cost: 0s
+AddSomeBandWidth time: 2 producer_id: 2 consumer_id: 1 stream_id: 1 bandwidth: 5890
 AddSomeBandWidth time: 2 producer_id: 1 consumer_id: 1 stream_id: 2 bandwidth: 600
 AddSomeBandWidth time: 2 producer_id: 1 consumer_id: 2 stream_id: 1 bandwidth: 400
 AddSomeBandWidth time: 2 producer_id: 1 consumer_id: 2 stream_id: 2 bandwidth: 890
 AddSomeBandWidth time: 2 producer_id: 1 consumer_id: 3 stream_id: 2 bandwidth: 234
+workbaseline_time_cost: 0s
 ********end********
 producer_id: 1 bandwidth: 81920
-sample pre95%: 8014 19876
-cost: 19876
+sample pre95%: 2124 6020
+cost: 6405.55
 last5%: 
 producer_id: 2 bandwidth: 87040
-sample pre95%: 0 0
-cost: 0
+sample pre95%: 5890 6056
+cost: 6423.54
 last5%: 
 producer_id: 3 bandwidth: 74586
-sample pre95%: 0 0
-cost: 0
+sample pre95%: 0 7800
+cost: 8534.19
 last5%: 
