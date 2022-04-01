@@ -24,7 +24,7 @@ producers 2 consumers: 3 has edge.
 producers 3 consumers: 1 has edge.
 producers 3 consumers: 2 has edge.
 producers 3 consumers: 3 has edge.
-read cost 0.002s.
+read cost 0.001s.
 cost_max_index: 2
 prework5%:
  producer_id: 1 bandwidth: 81920
