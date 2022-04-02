@@ -1,6 +1,0 @@
-CB:<S1,XP>,<SB,XH>
-CA:<S1,XP>,<SD,XH>
-CE:
-CB:<S1,XU>,<SB,XH>
-CA:<S1,XH,XU>
-CE:<S1,XU>
