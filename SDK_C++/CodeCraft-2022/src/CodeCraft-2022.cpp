@@ -335,7 +335,11 @@ void AddSomeBandWidth(int time, int producer_id, int consumer_id, int stream_id,
 
 
 // 降序首次适应
-bool DFF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
+bool DFF(int time, vector<RP>& tmp_consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
+    vector<PP> consumer_vec;
+    for (auto& cp : tmp_consumer_vec) {
+        consumer_vec.emplace_back(PP(P(-(int)consumers[cp.second.first].can_visit_point_vec.size(), cp.first),P(cp.second.first, cp.second.second)));
+    }
     sort(consumer_vec.begin(), consumer_vec.end());
     reverse(consumer_vec.begin(), consumer_vec.end());
     int *lst = new int[MAXN];
@@ -344,17 +348,21 @@ bool DFF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update
         lst[pp.second] = pp.first;
     }
     int consumer_id, producer_id, stream_id, bandwidth;
-    int best_producer_id, best_value;
+    int best_producer_id, best_value, best_degree;
     for (auto& cp : consumer_vec) {
         consumer_id = cp.second.first;
         stream_id = cp.second.second;
         bandwidth = consumers[consumer_id].time_need[time][stream_id];
+        if (bandwidth == 0) continue;
         best_producer_id = -1;
         best_value = -1;
+        best_degree = 1000000;
         for (auto& producer_id : consumers[consumer_id].can_visit_point_vec) {
             if (lst[producer_id] >= bandwidth) {
-                if (lst[producer_id] > best_value) {
+                if ((int)producers[producer_id].can_visit_point_vec.size() < best_degree ||
+                    (int)producers[producer_id].can_visit_point_vec.size() == best_degree && lst[producer_id] > best_value) {
                     best_value = lst[producer_id];
+                    best_degree = producers[producer_id].can_visit_point_vec.size();
                     best_producer_id = producer_id;
                 }
             }
@@ -798,7 +806,7 @@ void Work() {
         int time = time_vec[index].second;
         WorkTimeBaseline(time, index + 1, 0, 0);
     }
-    int upi = 15;
+    int upi = 10;
     for (int i = 1; i <= upi; ++i) {
         if (i == upi) is_ab = 0;
         Reset(0, 0);
