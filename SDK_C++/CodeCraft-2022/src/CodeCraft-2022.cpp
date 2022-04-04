@@ -1,3 +1,7 @@
+/*
+    tofix：每次DFF了检查是否重置has_cost
+*/
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -403,7 +407,7 @@ bool DFF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update
 //     return true;
 // }
 // // 降序最佳适应
-// bool DBF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
+// bool DBF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int Fnd_write=1) {
 //     sort(consumer_vec.begin(), consumer_vec.end());
 //     reverse(consumer_vec.begin(), consumer_vec.end());
 
@@ -845,7 +849,7 @@ void Work() {
             for (int time = 1; time <= times; ++time)
                 producers[producer_id].consumer_set[time].clear();
         PreWork(0);
-        if (result_file != nullptr && is_ab == 1 && i == 1) {
+        if (result_file != nullptr && is_ab == 1 && i == 1 && info[0] != '!') {
             long long all_has_cost = 0;
             int max_need = 0;
             for (int i = 1; i <= producer_number; ++i) {
