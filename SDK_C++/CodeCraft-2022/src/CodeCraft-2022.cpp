@@ -335,11 +335,7 @@ void AddSomeBandWidth(int time, int producer_id, int consumer_id, int stream_id,
 
 
 // 降序首次适应
-bool DFF(int time, vector<RP>& tmp_consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
-    vector<PP> consumer_vec;
-    for (auto& cp : tmp_consumer_vec) {
-        consumer_vec.emplace_back(PP(P(-(int)consumers[cp.second.first].can_visit_point_vec.size(), cp.first),P(cp.second.first, cp.second.second)));
-    }
+bool DFF(int time, vector<RP>& consumer_vec, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
     sort(consumer_vec.begin(), consumer_vec.end());
     reverse(consumer_vec.begin(), consumer_vec.end());
     int *lst = new int[MAXN];
@@ -348,7 +344,7 @@ bool DFF(int time, vector<RP>& tmp_consumer_vec, vector<P>& producer_vec, int up
         lst[pp.second] = pp.first;
     }
     int consumer_id, producer_id, stream_id, bandwidth;
-    int best_producer_id, best_value, best_degree;
+    int best_producer_id, best_value;
     for (auto& cp : consumer_vec) {
         consumer_id = cp.second.first;
         stream_id = cp.second.second;
@@ -356,13 +352,10 @@ bool DFF(int time, vector<RP>& tmp_consumer_vec, vector<P>& producer_vec, int up
         if (bandwidth == 0) continue;
         best_producer_id = -1;
         best_value = -1;
-        best_degree = 1000000;
         for (auto& producer_id : consumers[consumer_id].can_visit_point_vec) {
             if (lst[producer_id] >= bandwidth) {
-                if ((int)producers[producer_id].can_visit_point_vec.size() < best_degree ||
-                    (int)producers[producer_id].can_visit_point_vec.size() == best_degree && lst[producer_id] > best_value) {
+                if (lst[producer_id] > best_value) {
                     best_value = lst[producer_id];
-                    best_degree = producers[producer_id].can_visit_point_vec.size();
                     best_producer_id = producer_id;
                 }
             }
@@ -719,7 +712,7 @@ void WorkPre5(int time, int time_index, int nd_write) {
 }
 
 int vis_time[MAXT];
-void WorkTimeBaseline(int time, int time_index, int nd_write, int nd_5) {
+void WorkTimeBaseline(int time, int time_index, int nd_write) {
     clock_t func_begin_time = clock();
     // todo
     vector<P> producer_vec;
@@ -796,29 +789,59 @@ void EndWork();
 void EndWorkBaseCost();
 
 void Work() {
-    PreWork(0);
+    // PreWork(0);
+    // if (result_file != nullptr) {
+    //     long long all_has_cost = 0;
+    //     int max_need = 0;
+    //     for (int i = 1; i <= producer_number; ++i) {
+    //         for (int time = 1; time <= times; ++time) {
+    //             max_need = max(max_need, time_node[time].sum_cost);
+    //             all_has_cost += producers[i].time_cost[time];
+    //         }
+    //     }
+    //     (*result_file) << "after 5%, "
+    //                     << " all_has_cost: " << all_has_cost
+    //                     << " max_need: " << max_need
+    //                     << endl;
+    // }
     // todo
     vector<P> time_vec;
     for (int time = 1; time <= times; ++time) time_vec.emplace_back(P(time_node[time].sum_cost, time));
     // sort(time_vec.begin(), time_vec.end());
     // reverse(time_vec.begin(), time_vec.end());
-    for (int index = 0; index < times; ++index) {
-        int time = time_vec[index].second;
-        WorkTimeBaseline(time, index + 1, 0, 0);
-    }
+    // random_shuffle(time_vec.begin(), time_vec.end());
+    // for (int index = 0; index < times; ++index) {
+    //     int time = time_vec[index].second;
+    //     WorkTimeBaseline(time, index + 1, 0, 0);
+    // }
     int upi = 10;
     for (int i = 1; i <= upi; ++i) {
         if (i == upi) is_ab = 0;
-        Reset(0, 0);
+        Reset(0, 1);
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) 
             for (int time = 1; time <= times; ++time)
                 producers[producer_id].consumer_set[time].clear();
+        PreWork(0);
+        if (result_file != nullptr && is_ab == 0) {
+            long long all_has_cost = 0;
+            int max_need = 0;
+            for (int i = 1; i <= producer_number; ++i) {
+                for (int time = 1; time <= times; ++time) {
+                    max_need = max(max_need, time_node[time].sum_cost);
+                    all_has_cost += producers[i].time_cost[time];
+                }
+            }
+            (*result_file) << "after 5%, "
+                            << " all_has_cost: " << all_has_cost
+                            << " max_need: " << max_need
+                            << endl;
+        }
         for (int index = 0; index < times; ++index) {
             int time = time_vec[index].second;
             WorkPre5(time, index + 1, 1);
-            WorkTimeBaseline(time, index + 1, 1, 1);
+            WorkTimeBaseline(time, index + 1, 1);
         }
-        for (int j = 1; j <= 20; ++j) {
+        for (int j = 1; j <= 10; ++j) {
             EndWork();
             EndWorkBaseCost();
         }
@@ -836,6 +859,21 @@ void Work() {
                 }
             }
         }
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            producers[producer_id].lst_ab_has_cost = producers[producer_id].has_cost;
+        }
+    }
+    if (result_file != nullptr) {
+        long long all_has_cost = 0;
+        for (int i = 1; i <= producer_number; ++i) {
+            for (int time = 1; time <= times; ++time) {
+                if (producers[i].is_full_use_time[time])
+                    all_has_cost += producers[i].time_cost[time];
+            }
+        }
+        (*result_file) << "End 5%, "
+                       << " all_has_cost: " << all_has_cost
+                       << endl;
     }
 }
 
