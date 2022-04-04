@@ -130,7 +130,10 @@ struct Producer {
         sort(p + 1, p + 1 + times); 
         double ret = CalCost(bandwidth, p[cost_max_index]);
         if (update_has_cost) {
-            has_cost = max(base_cost, p[cost_max_index]);
+            if (p[cost_max_index] == 0) 
+                has_cost = 0;
+            else
+                has_cost = max(base_cost, p[cost_max_index]);
         }
         if (update_full_use_time) {
             for (int i = 1; i <= times; ++i) {
@@ -884,7 +887,7 @@ void Work() {
             producers[producer_id].lst_ab_has_cost = producers[producer_id].has_cost;
         }
     }
-    if (result_file != nullptr) {
+    if (result_file != nullptr && info[0] != '!') {
         long long all_has_cost = 0;
         for (int i = 1; i <= producer_number; ++i) {
             for (int time = 1; time <= times; ++time) {
@@ -993,12 +996,15 @@ void EndWork() {
         }
         sort(time_vec.begin(), time_vec.end());
         reverse(time_vec.begin(), time_vec.end());
-        int nxt_has_cost = 0;
         for (auto& tp : time_vec) {
             int time = tp.second;
             int cur = tp.first;
             if (tp.first <= Max) break;
             for (auto& cp : producers[from_producer_id].consumer_set[time]) {
+                // 初次endwork不降到base以下
+                if (cur <= base_cost) {
+                    break;
+                }
                 consumer_id = cp / BASE;
                 stream_id = cp % BASE;
                 if (consumers[consumer_id].ini_time_need[time][stream_id] == 0) {
@@ -1025,16 +1031,13 @@ void EndWork() {
                 producers[from_producer_id].consumer_set[time].erase(consumer_info);
             }
             Max = max(Max, cur);
+            if(Max > 0) Max = max(Max, base_cost);
         }
-        for (int time = 1; time <= times; ++time) {
-            if (producers[from_producer_id].is_full_use_time[time] == 0)
-                nxt_has_cost = max(nxt_has_cost, producers[from_producer_id].time_cost[time]);
-        }
-        producers[from_producer_id].has_cost = nxt_has_cost;
+        producers[from_producer_id].GetAnswer(1, 1);
         if (debug_file != nullptr && is_ab == 0) {
             (*debug_file) << "EndWork, producer_id: " << from_producer_id
                           << " pre_has_cost: " << pre_has_cost[from_producer_id]
-                          << " win: " << pre_has_cost[from_producer_id] - nxt_has_cost
+                          << " win: " << pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost
                           << endl;
         }
     }
@@ -1104,15 +1107,11 @@ void EndWorkBaseCost() {
             }
             if (cur > 0) break;
         }
-        for (int time = 1; time <= times; ++time) {
-            if (producers[from_producer_id].is_full_use_time[time] == 0)
-                nxt_has_cost = max(nxt_has_cost, producers[from_producer_id].time_cost[time]);
-        }
-        producers[from_producer_id].has_cost = nxt_has_cost;
+        producers[from_producer_id].GetAnswer(1, 1);
         if (debug_file != nullptr && is_ab == 0) {
             (*debug_file) << "EndWorkBaseCost, producer_id: " << from_producer_id
                           << " pre_has_cost: " << pre_has_cost[from_producer_id]
-                          << " win: " << pre_has_cost[from_producer_id] - nxt_has_cost
+                          << " win: " << pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost
                           << " base_cost: " << base_cost
                           << endl;
         }
