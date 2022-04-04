@@ -822,6 +822,7 @@ void Work() {
             for (int time = 1; time <= times; ++time)
                 producers[producer_id].consumer_set[time].clear();
         PreWork(0);
+        Reset(0, 0);
         if (result_file != nullptr && is_ab == 0) {
             long long all_has_cost = 0;
             int max_need = 0;
