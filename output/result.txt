@@ -420,6 +420,283 @@ End 5%,  all_has_cost: 31424698
 data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
 sum_cost: 79379 best_answer: 79379 cost_time: 12.348s
 
+
+info: asoul
+time: Wed Apr 06 05:17:46 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21319 best_answer: 21319 cost_time: 0s
+
 info: 
-time: Wed Apr 06 01:37:17 2022
-after 5%,  all_has_cost: 205439338 max_need: 234232
+time: Wed Apr 06 05:17:46 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33411348
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 23424 best_answer: 23424 cost_time: 10.588s
+
+info: 
+time: Wed Apr 06 05:17:57 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33273239
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 32340 best_answer: 32083 cost_time: 11.025s
+
+info: 
+time: Wed Apr 06 05:18:08 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33316500
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 37397 best_answer: 37360 cost_time: 11.371s
+
+info: 
+time: Wed Apr 06 05:18:20 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32588969
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 77865 best_answer: 77865 cost_time: 11.442s
+
+
+info: cost考虑单位增长最少
+time: Wed Apr 06 05:19:05 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 24234 best_answer: 24234 cost_time: 0.016s
+
+info: 
+time: Wed Apr 06 05:19:06 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32862881
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 24654 best_answer: 24654 cost_time: 10.481s
+
+info: 
+time: Wed Apr 06 05:19:16 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33600750
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 27601 best_answer: 27251 cost_time: 11.084s
+
+info: 
+time: Wed Apr 06 05:19:27 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33356513
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 37977 best_answer: 37415 cost_time: 11.218s
+
+info: 
+time: Wed Apr 06 05:19:39 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32463178
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 80162 best_answer: 80162 cost_time: 11.15s
+
+i
+info: 
+info: 每次迭代压一点 5% 
+time: Wed Apr 06 05:31:36 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21439 best_answer: 21319 cost_time: 0.016s
+
+info: 
+time: Wed Apr 06 05:31:36 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33220100
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 22782 best_answer: 22782 cost_time: 10.95s
+
+info: 
+time: Wed Apr 06 05:31:47 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33143333
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 31764 best_answer: 29949 cost_time: 11.705s
+
+info: 
+time: Wed Apr 06 05:31:59 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33044269
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 39260 best_answer: 39260 cost_time: 12.213s
+
+info: 
+time: Wed Apr 06 05:32:11 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32472773
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 77865 best_answer: 77865 cost_time: 11.69s
+
+info: 
+
+info: 压50%
+time: Wed Apr 06 05:47:56 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21336 best_answer: 21319 cost_time: 0s
+
+info: 
+time: Wed Apr 06 05:47:56 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33171339
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 24068 best_answer: 21005 cost_time: 10.85s
+
+info: 
+time: Wed Apr 06 05:48:07 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33148684
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 35953 best_answer: 30638 cost_time: 11.397s
+
+info: 
+time: Wed Apr 06 05:48:19 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33130317
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 43208 best_answer: 41982 cost_time: 11.252s
+
+info: 
+time: Wed Apr 06 05:48:30 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32530863
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 78134 best_answer: 77969 cost_time: 11.235s
+
+
+info: 迭代20次，270s终止，后10次shuffle time
+time: Wed Apr 06 13:50:46 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21319 best_answer: 21319 cost_time: 0.011s
+
+info: 
+time: Wed Apr 06 13:50:46 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33417013
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 23423 best_answer: 23423 cost_time: 20.671s
+
+info: 
+time: Wed Apr 06 13:51:07 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33596142
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 30899 best_answer: 30899 cost_time: 21.782s
+
+info: 
+time: Wed Apr 06 13:51:29 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33358509
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 37498 best_answer: 37305 cost_time: 22.174s
+
+info: cost不计wj
+time: Wed Apr 06 13:51:51 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+info: 
+time: Wed Apr 06 13:53:38 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21319 best_answer: 21319 cost_time: 0.009s
+
+info: 
+time: Wed Apr 06 13:53:38 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33571738
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 21568 best_answer: 21429 cost_time: 20.757s
+
+info: 
+time: Wed Apr 06 13:53:59 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33323266
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 31698 best_answer: 29085 cost_time: 21.536s
+
+info: 
+time: Wed Apr 06 13:54:21 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33158861
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 39648 best_answer: 39149 cost_time: 23.466s
+
+info: 
+time: Wed Apr 06 16:13:37 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 21319 best_answer: 21319 cost_time: 0.009s
+
+info: 线上474
+time: Wed Apr 06 16:13:37 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33417013
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 23423 best_answer: 23423 cost_time: 20.148s
+
+info: 
+time: Wed Apr 06 16:13:58 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33596142
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 30899 best_answer: 30899 cost_time: 22.038s
+
+info: 
+time: Wed Apr 06 16:14:20 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 33358509
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 37498 best_answer: 37305 cost_time: 22.171s
+
+info: 
+time: Wed Apr 06 16:14:42 2022
+after 5%,  all_has_cost: 33944190 max_need: 15380
+End 5%,  all_has_cost: 32588969
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 77865 best_answer: 77865 cost_time: 22.335s
+
+info: 
+info: 
+time: Wed Apr 06 16:28:18 2022
+after 5%,  all_has_cost: 0 max_need: 19876
+End 5%,  all_has_cost: 0
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_sample
+sum_cost: 24962 best_answer: 24962 cost_time: 0.008s
+
+info: 
+time: Wed Apr 06 16:28:18 2022
+after 5%,  all_has_cost: 35001074 max_need: 15380
+End 5%,  all_has_cost: 34603303
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 33527 best_answer: 33527 cost_time: 28.479s
+
+info: 
+time: Wed Apr 06 16:28:47 2022
+after 5%,  all_has_cost: 35001074 max_need: 15380
+End 5%,  all_has_cost: 34943972
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 33120 best_answer: 32920 cost_time: 29.151s
+
+info: 
+time: Wed Apr 06 16:29:16 2022
+after 5%,  all_has_cost: 35001074 max_need: 15380
+End 5%,  all_has_cost: 34902994
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 40965 best_answer: 39817 cost_time: 29.893s
+
+info: 
+time: Wed Apr 06 16:29:46 2022
+after 5%,  all_has_cost: 35001074 max_need: 15380
+End 5%,  all_has_cost: 34637803
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 73844 best_answer: 72236 cost_time: 29.922s
+
+info: 
+time: Wed Apr 06 16:30:16 2022
+after 5%,  all_has_cost: 708637528 max_need: 234208
