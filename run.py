@@ -13,7 +13,7 @@ os.system('g++ -o codecraft.exe %s' % (main_file))
 for path, dir_list, _ in os.walk(data_dir):
     for dir in dir_list:
         ## only run sample
-        ##if dir != '30_10_50_c20000':
+        ##if dir != '1_test':
         ##    continue
         data_child_dir = os.path.join(path, dir)
         solution_dir = output_dir + '\\' + dir
