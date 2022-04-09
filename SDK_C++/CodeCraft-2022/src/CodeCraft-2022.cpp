@@ -16,6 +16,7 @@
 #include <omp.h>
 #include <unistd.h>
 #include <signal.h>
+#include <functional>
 
 using namespace std;
 
@@ -23,6 +24,99 @@ typedef pair<int, int> P;
 typedef pair<P, int> LP;
 typedef pair<int, P> RP;
 typedef pair<P, P> PP;
+
+const int maxn = 1e5+10;
+const int inf = 1e9;
+
+struct edge
+{
+    int v;
+    int next;
+    int val;
+}e[maxn];
+struct ISAPFlow{
+    int n,m,s,t;
+    int cnt=-1,head[maxn];
+    int dep[maxn],gap[maxn];
+    long long maxflow;
+    int cur[maxn];
+    inline void reset(){
+        n=m=s=t=0;
+        cnt=-1;
+        memset(head,-1,sizeof(head));
+        memset(dep,0,sizeof(dep));
+        memset(gap,0,sizeof(gap));
+        memset(cur,-1,sizeof(cur));
+        maxflow=0;
+    }
+    inline void addedge(int u,int v,int val)
+    {
+        e[++cnt].v=v;
+        e[cnt].val=val;
+        e[cnt].next=head[u];
+        head[u]=cnt;
+    }
+    void bfs()
+    {
+        memset(dep,-1,sizeof(dep));
+        memset(gap,0,sizeof(gap));
+        dep[t]=0;
+        gap[0]=1;
+        queue<int>q;
+        q.push(t);
+        while(!q.empty())
+        {
+            int u=q.front();
+            q.pop();
+            for(int i=head[u];~i;i=e[i].next)
+            {
+                int v=e[i].v;
+                if(dep[v]!=-1)	continue;
+                q.push(v);
+                dep[v]=dep[u]+1;
+                gap[dep[v]]++;
+            }
+        }
+        return;
+    }
+    int dfs(int u,int flow)
+    {
+        if(u==t)
+        {
+            maxflow+=flow;
+            return flow;
+        }
+        int used=0;
+        for(int i=cur[u];~i;i=e[i].next)
+        {
+            cur[u]=i;
+            int d=e[i].v;
+            if(e[i].val&&dep[d]+1==dep[u])
+            {
+                int mi=dfs(d,min(e[i].val,flow-used));
+                if(mi){
+                    e[i].val-=mi;
+                    e[i^1].val+=mi;
+                    used+=mi;
+                }
+                if(used==flow)return used;
+            }
+        }
+
+        --gap[dep[u]];
+        if(gap[dep[u]]==0)dep[s]=n+1;
+        dep[u]++;
+        gap[dep[u]]++;
+        return used;
+    }
+    long long ISAP()
+    {
+        maxflow=0;
+        bfs();
+        while(dep[s]<n)memcpy(cur,head,sizeof(head)),dfs(s,inf);
+        return maxflow;
+    }
+}ISAP;
 
 ofstream *debug_file = nullptr;
 ofstream *result_file = nullptr;
@@ -39,11 +133,20 @@ const int BASE = 10000;
 
 int has_time_cost = 1;
 
+int this_ab_index = 0;
+
+// params
+const int consumer_nd_block = 10;
+const int producer_block = 1;
+const int dff_producer_block = 1;
+double Cik = 0.0;
+int simT = 100;
+
 clock_t begin_time;
 void sig_handler(int num);
 void CheckTime() {
     double time = (double)(clock() - begin_time) / CLOCKS_PER_SEC;
-    if (time > 270.0) {
+    if (time > 275.0) {
         sig_handler(0);
         exit(0);
     }
@@ -76,6 +179,14 @@ int pt[MAXT];
 
 int base_cost;
 
+// func
+void Reset(int reset_has_cost, int reset_has_use_full_time, int reset_write);
+void Reset(int reset_has_cost, int reset_has_use_full_time, int reset_write, int time);
+int EndWork(int sort_type, int loop_type);
+int EndTryFullUse();
+int EndWorkWithCost(int sort_type, int loop_type);
+double EndWorkWithCostVec(int sort_type, int loop_type);
+void EndTryDiscard();
 
 // 暂时不考虑为0，也就是扔掉边缘的情况
 double CalCost(int Ci, int Wi) {
@@ -94,6 +205,7 @@ double CalCost(int Ci, int Wi, int cur, int ci) {
     double x1 = CalCost(Ci, max(Wi, cur + ci)) - CalCost(Ci, Wi);
     // double x2 = (double)(max(Wi, cur + ci) - base_cost) / (double)Ci;
     // x1 /= (double((max(Wi, cur + ci) - Wi)) + 0.00000001);
+    x1 += Cik * Ci;
     return x1;
 }
 
@@ -125,7 +237,7 @@ struct Producer {
         lst_ab_has_cost = 0;
     }
     void Reset(int reset_has_cost, int reset_has_use_full_time) {
-        if(reset_has_cost) has_cost = 0;
+        if(reset_has_cost) has_cost = base_cost;
         if(reset_has_use_full_time) has_use_full_time = 0;
         for (int i = 1; i <= times; ++i) {
             if(reset_has_use_full_time) is_full_use_time[i] = 0;
@@ -133,6 +245,14 @@ struct Producer {
             time_cost[i] = 0;
         }
     }
+    void Reset(int reset_has_cost, int reset_has_use_full_time, int time) {
+        if(reset_has_cost) has_cost = base_cost;
+        if(reset_has_use_full_time) has_use_full_time = 0;
+        if(reset_has_use_full_time) is_full_use_time[time] = 0;
+        need_time_cost_sum[time] = ini_need_time_cost_sum[time];
+        time_cost[time] = 0;
+    }
+    
     bool operator < (const Producer& producer) const {
         return bandwidth < producer.bandwidth;
     }
@@ -149,12 +269,13 @@ struct Producer {
             p[time] = time_cost[time];
         }
         sort(p + 1, p + 1 + times); 
-        int ret = 0;
-        for (int time = cost_max_index; time >= 2; --time) {
-            ret += (p[time] - p[time - 1]) * time * 5; 
-        }        
+        // int ret = 0;
+        // for (int time = cost_max_index; time >= 2; --time) {
+        //     ret += (p[time] - p[time - 1]) * time * 5; 
+        // }        
         // ?
-        // ret = p[cost_max_index];
+        int ret = p[cost_max_index];
+        delete[] p;
         return ret;
     }
     double GetAnswer(int update_has_cost, int update_full_use_time) {
@@ -224,13 +345,20 @@ struct Consumer {
     int can_visit_point[MAXN];
     int time_need[MAXT][MAXK];
     int ini_time_need[MAXT][MAXK];
+    int degrees;
     Consumer() {
         can_visit_point_vec.clear();
+        degrees = 0;
     }
     void Reset() {
         for (int i = 1; i <= times; ++i) {
             for (int j = 1; j <= pt[i]; ++j)
                 time_need[i][j] = ini_time_need[i][j];
+        }
+    }
+    void Reset(int i) {
+        for (int j = 1; j <= pt[i]; ++j) {
+            time_need[i][j] = ini_time_need[i][j];
         }
     }
     void NodifyProducer(int time, int cost_bandwidth) {
@@ -243,9 +371,6 @@ struct Consumer {
         time_node[time].sum_value -= cost_bandwidth;
     }
 } consumers[MAXM];
-
-// func
-void Reset(int reset_has_cost, int reset_has_use_full_time);
 
 // time, consumer_id, stream_id -> producer_id
 int info_bandwidth[MAXT][36][MAXK]; 
@@ -261,6 +386,15 @@ int GetAnswer() {
 
 vector<PP> time_consumer_vec[MAXT];
 vector<PP> time_consumer_vec_degree[MAXT];
+vector<PP> all_consumer_vec;
+
+bool consumer_cmp(const PP& p1, const PP& p2) {
+    if (p1.first.first / consumer_nd_block == p2.first.first / consumer_nd_block) {
+        return p1.first.second < p2.first.second;
+    }
+    return p1.first.first < p2.first.first;
+}
+
 
 void Init() {
     //srand(298758457);
@@ -276,6 +410,7 @@ void Init() {
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
             if (producers[producer_id].can_visit_point[consumer_id]) {
+                ++consumers[consumer_id].degrees;
                 producers[producer_id].can_visit_point_vec.emplace_back(consumer_id);
                 consumers[consumer_id].can_visit_point_vec.emplace_back(producer_id);
                 for (int time = 1; time <= times; ++time) {
@@ -300,7 +435,11 @@ void Init() {
             for (int stream_id = 1; stream_id <= pt[time]; ++stream_id) {
                 // 写死每天的情况
                 if (consumers[consumer_id].time_need[time][stream_id] > 0) {
-                    time_consumer_vec[time].emplace_back(PP(P(1, consumers[consumer_id].time_need[time][stream_id]), 
+                    // all_consumer_vec.emplace_back(PP(P(consumers[consumer_id].time_need[time][stream_id], 1), 
+                    //                                  P(time, consumer_id * BASE + stream_id)));
+                    // time_consumer_vec[time].emplace_back(PP(P(consumers[consumer_id].time_need[time][stream_id], -(int)consumers[consumer_id].can_visit_point_vec.size()), 
+                    //                                         P(consumer_id, stream_id)));
+                    time_consumer_vec[time].emplace_back(PP(P(consumers[consumer_id].time_need[time][stream_id], -(int)consumers[consumer_id].can_visit_point_vec.size()), 
                                                             P(consumer_id, stream_id)));
                     time_consumer_vec_degree[time].emplace_back(PP(P(-consumers[consumer_id].can_visit_point_vec.size(), consumers[consumer_id].time_need[time][stream_id]), 
                                                             P(consumer_id, stream_id)));
@@ -316,19 +455,24 @@ void Init() {
         }
     }
     
+    // sort(all_consumer_vec.begin(), all_consumer_vec.end());
+    // reverse(all_consumer_vec.begin(), all_consumer_vec.end());
+
     for (int time = 1; time <= times; ++time) {
-        sort(time_consumer_vec[time].begin(), time_consumer_vec[time].end());
+        sort(time_consumer_vec[time].begin(), time_consumer_vec[time].end(), consumer_cmp);
         reverse(time_consumer_vec[time].begin(), time_consumer_vec[time].end());
         sort(time_consumer_vec_degree[time].begin(), time_consumer_vec_degree[time].end());
         reverse(time_consumer_vec_degree[time].begin(), time_consumer_vec_degree[time].end());
         time_node[time].ini_sum_cost = time_node[time].sum_cost;
     }
 
+
+
     // ab_candidate_map["pre_producer_sort"] = {0, 1, 2};
     // ab_candidate_map["pre_consumer_sort"] = {0, 1, 2};
 }
 
-void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int consumer_id, int stream_id, int bandwidth, int update_use_cost=0) {
+void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int consumer_id, int stream_id, int bandwidth, int update_use_cost, int nd_delete) {
     if (debug_file != nullptr && is_ab == 0) {
         if ( time <= 5 && consumer_id <= 3 && bandwidth > 0 ) {
             (*debug_file) << "MoveSomeBandWidth time: " << time  
@@ -343,11 +487,17 @@ void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int c
     producers[to_producer_id].time_cost[time] += bandwidth;
     producers[from_producer_id].time_cost[time] -= bandwidth;
 
+    if (update_use_cost && producers[to_producer_id].is_full_use_time[time] == 0) {
+        producers[to_producer_id].has_cost = max(producers[to_producer_id].has_cost, producers[to_producer_id].time_cost[time]);
+    }
+
     // not nodify
 
     info_bandwidth[time][consumer_id][stream_id] = to_producer_id;
     // 延迟删除
-    // producers[from_producer_id].consumer_set[time].erase(consumer_id * BASE + stream_id);
+    if (nd_delete == 1) {
+        producers[from_producer_id].consumer_set[time].erase(consumer_id * BASE + stream_id);
+    }
     producers[to_producer_id].consumer_set[time].insert(consumer_id * BASE + stream_id);
 }
 
@@ -382,6 +532,10 @@ void AddSomeBandWidth(int time, int producer_id, int consumer_id, int stream_id,
 }
 
 
+double Rand() {
+    int range = 10000;
+    return (double)(rand()%range)/range;
+}
 
 // 降序首次适应
 bool DFF(int time, vector<P>& producer_vec, int update_use_cost=0, int nd_write=1) {
@@ -399,13 +553,16 @@ bool DFF(int time, vector<P>& producer_vec, int update_use_cost=0, int nd_write=
         if (bandwidth == 0) continue;
         best_producer_id = -1;
         best_value = -1;
+        best_degree = 100000;
         for (int i = 0 ; i < consumers[consumer_id].can_visit_point_vec.size(); ++i) {
             int producer_id = consumers[consumer_id].can_visit_point_vec[i];
             // 找能放得下他最大的那一个
             if (lst[producer_id] >= bandwidth) {
-                if (lst[producer_id] > best_value) {
+                if (lst[producer_id] / dff_producer_block > best_value / dff_producer_block ||
+                    lst[producer_id] / dff_producer_block == best_value / dff_producer_block && producers[producer_id].can_visit_point_vec.size() < best_degree) {
                     best_value = lst[producer_id];
                     best_producer_id = producer_id;
+                    best_degree = producers[producer_id].can_visit_point_vec.size();
                 }
             }
         }
@@ -424,7 +581,7 @@ void PreWork(int nd_write, int left_weight, int right_weight) {
     for (int i = 1; i <= times; ++i) ban[i] = 0;
 
     for (int k = 1; k <= can_full_use_time * producer_number; ++k) {
-        int best_producer_id = -1, best_time = -1, can_min_last = -1, time_sum_use = -1, node_degree = -1;
+        int best_producer_id = -1, best_time = -1, can_min_last = -1, time_sum_use = -1, node_degree = 100000;
         for (int time = 1; time <= times; ++time) {
             if (ban[time] == 1) continue;
             if (time_sum_use < time_node[time].sum_value) {
@@ -437,13 +594,16 @@ void PreWork(int nd_write, int left_weight, int right_weight) {
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
             if (producers[producer_id].has_use_full_time == can_full_use_time) continue;
             if (producers[producer_id].is_full_use_time[best_time] == 1) continue;
+            if (producers[producer_id].discard == 1) continue;
             int can_last = min(producers[producer_id].need_time_cost_sum[best_time], producers[producer_id].TimeRemain(best_time));
             // 按value来排(can_cost)
             // 不先考虑放不满一半的
             if (left_weight != -1 && can_last * left_weight < producers[producer_id].TimeRemain(best_time) * right_weight) continue;
-            if (can_last > can_min_last ) {
+            if (can_last / producer_block > can_min_last / producer_block ||
+                can_last / producer_block == can_min_last / producer_block && producers[producer_id].can_visit_point_vec.size() < node_degree) {
                 can_min_last = can_last;
                 best_producer_id = producer_id;
+                node_degree = producers[producer_id].can_visit_point_vec.size();
             }
         }
 
@@ -488,6 +648,53 @@ void PreWork(int nd_write, int left_weight, int right_weight) {
         }
     }
     delete[] ban;
+}
+
+void PreFirst(int nd_write) {
+    vector<pair<pair<int,int>,int> > can_cost_time;
+    vector<LP > tmp;  
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
+        // tmp.emplace_back(LP(P(producers[producer_id].bandwidth / producer_block, -(int)producers[producer_id].can_visit_point_vec.size()), producer_id));
+        tmp.emplace_back(LP(P(producers[producer_id].bandwidth / producer_block, 1), producer_id));
+    }
+    // 边缘从度数小的开始
+    sort(tmp.begin(), tmp.end());
+    reverse(tmp.begin(), tmp.end());
+    
+    for (auto& p : tmp) {
+        int producer_id = p.second;
+        can_cost_time.clear();
+        for (int time = 1; time <= times; ++time) {
+            int can_cost = producers[producer_id].need_time_cost_sum[time];
+            can_cost = min(can_cost, producers[producer_id].bandwidth);
+            // -3 -3, -3 -2, -2 -100
+            can_cost_time.emplace_back(make_pair(make_pair(-can_cost, -time_node[time].sum_value), time));
+        }
+        sort(can_cost_time.begin(), can_cost_time.end());
+        // reverse(can_cost_time.begin(), can_cost_time.end());
+        for (int i = 0; i < can_full_use_time; ++i) {
+            int time = can_cost_time[i].second;
+
+            // update time_node sum value
+            time_node[time].sum_value += producers[producer_id].lst_ab_has_cost;
+
+            producers[producer_id].is_full_use_time[time] = 1;
+            ++producers[producer_id].has_use_full_time;
+
+            for (auto& cp : time_consumer_vec[time]) {
+                int consumer_id = cp.second.first;
+                int stream_id = cp.second.second;
+                if (consumers[consumer_id].can_visit_point[producer_id] == 0) {
+                    continue;
+                }
+                int cost_bandwidth = producers[producer_id].TimeRemain(time);
+                if (cost_bandwidth < consumers[consumer_id].time_need[time][stream_id]) continue;
+                if (consumers[consumer_id].time_need[time][stream_id] == 0) continue;
+                AddSomeBandWidth(time, producer_id, consumer_id, stream_id, consumers[consumer_id].time_need[time][stream_id], 0, nd_write);              
+            }
+        }
+    }
 }
 
 void PreWork(int nd_write) {
@@ -536,10 +743,10 @@ void PreWork(int nd_write) {
     }
 }
 
-
 void WorkPre5(int time, int time_index, int nd_write) {
     vector<P> f_producer_vec;
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
         if (producers[producer_id].is_full_use_time[time] == 1) {
             f_producer_vec.emplace_back(P(producers[producer_id].bandwidth, producer_id));    
         }
@@ -550,9 +757,21 @@ void WorkPre5(int time, int time_index, int nd_write) {
 void WorkPre5AndNoCost(int time, int time_index, int nd_write) {
     vector<P> f_producer_vec;
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
         if (producers[producer_id].is_full_use_time[time] == 1) {
             f_producer_vec.emplace_back(P(producers[producer_id].bandwidth, producer_id));    
         } else {
+            f_producer_vec.emplace_back(P(producers[producer_id].HasCostRemain(time), producer_id));        
+        }
+    }
+    DFF(time, f_producer_vec, 0, nd_write);
+}
+
+void WorkNoCost(int time, int time_index, int nd_write) {
+    vector<P> f_producer_vec;
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
+        if (producers[producer_id].is_full_use_time[time] == 0) {
             f_producer_vec.emplace_back(P(producers[producer_id].HasCostRemain(time), producer_id));        
         }
     }
@@ -565,6 +784,7 @@ void WorkTimeBaseline(int time, int time_index, int nd_write) {
     // todo
     vector<LP> producer_vec;
     for (int i = 1; i <= producer_number; ++i) {
+        if (producers[i].discard == 1) continue;
         producer_vec.emplace_back(LP(P(producers[i].can_visit_point_vec.size(), producers[i].bandwidth), i));
     }
     sort(producer_vec.begin(), producer_vec.end());
@@ -614,10 +834,12 @@ void WorkTimeBaseline(int time, int time_index, int nd_write) {
         double min_cost = 1e12;            
         for(auto& pp : producer_vec) {
             int producer_id = pp.second;
+            if (producers[producer_id].discard == 1) continue;
             if (producers[producer_id].can_visit_point[consumer_id] == 0) continue;
             if (producers[producer_id].TimeRemain(time) < nd_bandwidth) continue;
             double tmp = (int)CalCost(producers[producer_id].bandwidth, producers[producer_id].has_cost, producers[producer_id].time_cost[time], nd_bandwidth);
             // tmp = -(int)producers[producer_id].bandwidth;
+            // 同时刻先找的最大的
             if (tmp < min_cost) {
                 min_cost = tmp;
                 best_producer_id = producer_id;
@@ -633,10 +855,156 @@ void WorkTimeBaseline(int time, int time_index, int nd_write) {
 
 }
 
-void EndWork(int sort_type, int loop_type);
-void EndWorkBaseCost();
+void WorkAllTime(int nd_write) {
+    vector<LP> producer_vec;
+    for (int i = 1; i <= producer_number; ++i) {
+        if (producers[i].discard == 1) continue;
+        producer_vec.emplace_back(LP(P(producers[i].bandwidth, 1), i));
+    }
+    sort(producer_vec.begin(), producer_vec.end());
+    reverse(producer_vec.begin(), producer_vec.end());
+
+    for (auto& cp : all_consumer_vec) {
+        int time = cp.second.first;
+        int consumer_id = cp.second.second / BASE;
+        int stream_id = cp.second.second % BASE;
+        int nd_bandwidth = consumers[consumer_id].time_need[time][stream_id];
+        if (nd_bandwidth == 0) continue ;
+        int best_producer_id = -1;
+        double min_cost = 1e12;            
+        for(auto& pp : producer_vec) {
+            int producer_id = pp.second;
+            if (producers[producer_id].discard == 1) continue;
+            if (producers[producer_id].can_visit_point[consumer_id] == 0) continue;
+            if (producers[producer_id].TimeRemain(time) < nd_bandwidth) continue;
+            double tmp = (int)CalCost(producers[producer_id].bandwidth, producers[producer_id].has_cost, producers[producer_id].time_cost[time], nd_bandwidth);
+            // tmp = -(int)producers[producer_id].bandwidth;
+            // 同耗费先找的 最大的
+            if (tmp < min_cost) {
+                min_cost = tmp;
+                best_producer_id = producer_id;
+            }
+        }
+        if (best_producer_id == -1) continue;
+        AddSomeBandWidth(time, best_producer_id, consumer_id, stream_id, nd_bandwidth, 1, nd_write);
+    }     
+}
+
+double simulateWork(vector<P>& time_tmp){
+    for (int index = 0; index < time_tmp.size(); ++index) {
+        int time = time_tmp[index].second;
+        Reset(1, 1, 1, time);
+    }
+    for (int i = 1 ; i <= producer_number; ++i) producers[i].has_cost = base_cost;
+    for (int index = 0; index < time_tmp.size(); ++index) {
+        int time = time_tmp[index].second;
+        WorkPre5AndNoCost(time, index + 1, 1);
+        WorkTimeBaseline(time, index + 1, 1);
+    }
+    double ret = 0.0;
+    for (int i = 1; i <= producer_number; ++i) ret += CalCost(producers[i].bandwidth, producers[i].has_cost);
+    return ret;
+}
+
+void simulateAnnealToK() {
+    vector<P>time_tmp;
+    for(int time=1;time<=times;time++){
+        time_tmp.emplace_back(P(time_node[time].sum_value,time));
+    }
+    sort(time_tmp.begin(),time_tmp.end());
+    reverse(time_tmp.begin(),time_tmp.end());
+    while(time_tmp.size() > simT) {
+        time_tmp.pop_back();
+    }
+    double t=100;
+    double lastAnswer=1e18;
+    double nowK = 0.0;
+    int prin = 0;
+    while(t>0.0001){
+        if (t>1.0)
+            Cik = nowK+(Rand()*2.0-1.0);
+        else
+            Cik = nowK+(Rand()*2.0-1.0) * t;
+        Cik = min(Cik, 0.0);
+        Cik = max(Cik, -0.001);
+        double answer= simulateWork(time_tmp);
+        double delta=answer-lastAnswer;
+        ++prin;
+        if (debug_file != nullptr && prin <= 500) {
+            (*debug_file) << "Cik: " << Cik
+                          << " delta: " << delta 
+                          << " answer: " << answer
+                          << " last_answer: " << lastAnswer  
+                          << endl;
+        }
+        if(delta<0||exp(-delta/t)>Rand()) {
+            nowK = Cik;
+            lastAnswer = answer;
+        }
+        t*=0.9;
+    }
+    Cik = nowK;
+    if (debug_file != nullptr) {
+        (*debug_file) << "EndCik: " << Cik
+                      << endl;
+    }
+}
+
+void initToK(){
+    simulateAnnealToK();
+}
 
 void Work() {
+    // discard
+    // int d_number = 5, bd_number = 5;
+    // vector<P> producer_vec;
+    // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+    //     producer_vec.emplace_back(P(producers[producer_id].bandwidth, producer_id));
+    // }
+    // sort(producer_vec.begin(), producer_vec.end());
+    // for (auto& pp : producer_vec) {
+    //     if (bd_number == 0) break;
+    //     --bd_number;
+    //     int producer_id = pp.second;
+    //     int flag = 1;
+    //     for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+    //         if (consumers[consumer_id].degrees <= 3) {
+    //             flag = 0;
+    //             break;
+    //         }
+    //     }
+    //     if (flag) {
+    //         producers[producer_id].discard = 1;
+    //         for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+    //             --consumers[consumer_id].degrees;
+    //         }
+    //     }
+    // }
+    // producer_vec.clear();
+    // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+    //     producer_vec.emplace_back(P(producers[producer_id].can_visit_point_vec.size(), producer_id));
+    // }
+    // sort(producer_vec.begin(), producer_vec.end());
+    // for (auto& pp : producer_vec) {
+    //     if (d_number == 0) break;
+    //     --d_number;
+    //     int producer_id = pp.second;
+    //     if (producers[producer_id].discard == 1) continue;
+    //     int flag = 1;
+    //     for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+    //         if (consumers[consumer_id].degrees <= 3) {
+    //             flag = 0;
+    //             break;
+    //         }
+    //     }
+    //     if (flag) {
+    //         producers[producer_id].discard = 1;
+    //         for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+    //             --consumers[consumer_id].degrees;
+    //         }
+    //     }
+    // }
+
     // PreWork(0);
     // if (result_file != nullptr) {
     //     long long all_has_cost = 0;
@@ -653,7 +1021,7 @@ void Work() {
     //                     << endl;
     // }
     // todo
-
+    // initToK();
     // 设置容量
     for (int i = 1; i <= producer_number; ++i) producers[i].has_cost = base_cost;
 
@@ -669,21 +1037,28 @@ void Work() {
     int upi = 30;
     for (int i = 1; i <= upi; ++i) {
         CheckTime();
-        if (i > 14) {
+        this_ab_index = i;
+        if (i > 15) {
             random_shuffle(time_vec.begin(), time_vec.end());
+            //  for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            //     int tmp = max(0, producers[producer_id].has_cost - base_cost);
+            //     tmp = tmp * 5 / 100; // -10%
+            //     producers[producer_id].has_cost = tmp; 
+            //     producers[producer_id].has_cost = min(producers[producer_id].bandwidth, producers[producer_id].has_cost);
+            // }
         }
         if (i == upi) is_ab = 0;
-        Reset(0, 1);
-        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) 
-            for (int time = 1; time <= times; ++time)
-                producers[producer_id].consumer_set[time].clear();
         // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         //     int tmp = max(0, producers[producer_id].has_cost - base_cost);
         //     tmp = tmp * 5 / 100; // -10%
         //     producers[producer_id].has_cost += tmp; 
         //     producers[producer_id].has_cost = min(producers[producer_id].bandwidth, producers[producer_id].has_cost);
         // }
-        PreWork(0);
+        
+        Reset(0, 1, 1);
+        
+        PreFirst(0);
+        
         if (result_file != nullptr && is_ab == 1 && i == 1) {
             long long all_has_cost = 0;
             int max_need = 0;
@@ -698,20 +1073,39 @@ void Work() {
                             << " max_need: " << max_need
                             << endl;
         }
-        Reset(0, 0);
+        // Reset(0, 0, 0);
+        // for (int index = 0; index < times; ++index) {
+        //     int time = time_vec[index].second;
+        //     WorkPre5(time, index + 1, 0);
+        // }
+        // WorkAllTime(0);
+        Reset(0, 0, 0);
+
         for (int index = 0; index < times; ++index) {
             int time = time_vec[index].second;
             WorkPre5AndNoCost(time, index + 1, 1);
             WorkTimeBaseline(time, index + 1, 1);
         }
-        EndWork(1, 1);
-        // EndWork(1, 0);
-        // for (int j = 1; j <= 3; ++j) {
-        //     EndWork(0, 1);
+        // Reset(0, 0, 0);
+        
+        // for (int index = 0; index < times; ++index) {
+        //     int time = time_vec[index].second;
+        //     WorkPre5AndNoCost(time, index + 1, 1);
+        //     WorkTimeBaseline(time, index + 1, 1);
         // }
-        for (int j = 1; j <= 5; ++j) {
-            EndWork(0, 0);
+
+        int tmp = 0;
+        EndWorkWithCostVec(1, 0);
+        for (int j = 1; j <= 7; ++j) {
+            if (EndWorkWithCostVec(0, 0) == 0) {
+                ++tmp;
+            } else {
+                tmp = 0;
+            }
+            // if(j % 3 == 0) EndTryFullUse();
+            if (tmp == 2) break;
         }
+
         if (debug_file != nullptr) {
             (*debug_file) << "AB_answer: " << GetAnswer()
                           << endl;
@@ -726,9 +1120,35 @@ void Work() {
                 }
             }
         }
-        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) { 
             producers[producer_id].lst_ab_has_cost = producers[producer_id].has_cost;
         }
+        // if (i == 1) {
+        //     vector<pair<long long, int> > discard_vec;
+        //     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        //         long long sum = 0;
+        //         for (int time = 1; time <= times; ++time) sum += producers[producer_id].time_cost[time];
+        //         discard_vec.emplace_back(P(sum, producer_id));
+        //     }
+        //     sort(discard_vec.begin(), discard_vec.end());
+        //     int discard_num = producer_number / 30;
+        //     for (int k = 0; k < discard_num; ++k) {
+        //         int producer_id = discard_vec[k].second;
+        //         int flag = 1;
+        //         for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+        //             if (consumers[consumer_id].degrees <= 3) {
+        //                 flag = 0;
+        //                 break;
+        //             }
+        //         }
+        //         if (flag) {
+        //             producers[producer_id].discard = 1;
+        //             for (auto& consumer_id : producers[producer_id].can_visit_point_vec) {
+        //                 --consumers[consumer_id].degrees;
+        //             }
+        //         }
+        //     }
+        // }
     }
     if (result_file != nullptr) {
         long long all_has_cost = 0;
@@ -744,83 +1164,17 @@ void Work() {
     }
 }
 
-// bool Check(int nd_write) {
-//     vector<P> f_producer_vec;
-//     vector<RP> f_consumer_vec;  
-//     for (int time = 1; time <= times; ++time) {
-//         f_consumer_vec.clear();
-//         f_producer_vec.clear();
-//         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-//             if (producers[producer_id].is_full_use_time[time] == 0) {
-//                 f_producer_vec.emplace_back(P(producers[producer_id].has_cost, producer_id));
-//             } else {
-//                 f_producer_vec.emplace_back(P(producers[producer_id].bandwidth, producer_id));
-//             }
-//         }
-//         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
-//             for (int stream_id =1; stream_id <= pt[time]; ++stream_id) {
-//                 if (consumers[consumer_id].time_need[time][stream_id] > 0)
-//                     f_consumer_vec.emplace_back(RP(consumers[consumer_id].time_need[time][stream_id], P(consumer_id, stream_id)));
-//             }
-//         }
-//         DFF(time, f_consumer_vec, f_producer_vec, 0, nd_write);
-//         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
-//             for (int stream_id =1; stream_id <= pt[time]; ++stream_id) {
-//                 if (consumers[consumer_id].time_need[time][stream_id] > 0)
-//                     return false;
-//             }
-//         }
-//     }
-//     return true;
-// }
 
-// void WorkBinarySearch() {
-//     PreWork();
-
-//     double lb = 0.0, ub = 100.0, mid, best;
-//     for (int k = 1; k <= 15; ++k) {
-//         mid = (lb + ub) / 2.0;
-//         Reset(1, 0);
-//         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-//             if (base_cost > producers[producer_id].bandwidth) {
-//                 producers[producer_id].has_cost = producers[producer_id].bandwidth;
-//             } else {
-//                 producers[producer_id].has_cost = min(producers[producer_id].bandwidth, 
-//                                                       int(mid * (double)producers[producer_id].bandwidth + (1.0 - mid) * (double)base_cost)); 
-//             }
-//         }
-//         if (Check(0)) {
-//             best = mid; 
-//             ub = mid;
-//         } else {
-//             lb = mid;
-//         }
-//         if (debug_file != nullptr) {
-//             (*debug_file) << "WorkBinarySearch, lb: " <<lb
-//                           << " ub: " <<ub
-//                           << endl;
-//         }
-//     }
-//     Reset(1, 0);
-//     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-//         if (base_cost > producers[producer_id].bandwidth) {
-//             producers[producer_id].has_cost = producers[producer_id].bandwidth;
-//         } else {
-//             producers[producer_id].has_cost = min(producers[producer_id].bandwidth, 
-//                                                     int(best * (double)producers[producer_id].bandwidth + (1.0 - best) * (double)base_cost)); 
-//         }
-//     }
-//     Check(1);
-// }
-
-void EndWork(int sort_type, int loop_type) {
+unordered_set<int>::iterator it[MAXT];
+unordered_set<int> tmp[MAXT];
+int EndWorkWithCost(int sort_type, int loop_type) {
     clock_t func_begin_time = clock();
     
     // todo
-    vector<P> time_vec;
     vector<P> producer_vec;
     int *pre_has_cost = new int[MAXN];
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
         producers[producer_id].GetAnswer(1, 1);
         producer_vec.emplace_back(1, producer_id);
         pre_has_cost[producer_id] = producers[producer_id].has_cost;
@@ -830,6 +1184,182 @@ void EndWork(int sort_type, int loop_type) {
     if(sort_type == 1) {
         producer_vec.clear();
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            if (producers[producer_id].discard == 1) continue;
+            producer_vec.emplace_back(producers[producer_id].GetScore(), producer_id);
+        }
+        sort(producer_vec.begin(), producer_vec.end());
+        reverse(producer_vec.begin(), producer_vec.end());
+    }
+
+    int print_number = 0;
+    int all_win = 0;
+    double cost_all_win = 0.0;
+    priority_queue<P> max_que;
+    P max_p, cmax_p;
+    int nxt;
+    int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth, nd_bandwidth;
+    double best_down = 1.0, best_to_producer_id; 
+    double this_down ;
+
+    for (int i = 0; i < producer_vec.size(); ++i) {
+        from_producer_id = producer_vec[i].second;
+        for (int time = 1; time <= times; ++time) {
+            tmp[time].clear();
+        }
+        while (max_que.size()) max_que.pop();
+        int Max = base_cost; // 放到这个就没必要了
+        for (int time = 1; time <= times; ++time) {
+            if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
+            max_que.push(P(producers[from_producer_id].time_cost[time], time));
+            it[time] = producers[from_producer_id].consumer_set[time].begin();
+            // if (debug_file != nullptr && i<= 3) {
+            //     (*debug_file) << "time set,"
+            //                   << " from_producer_id: " << from_producer_id 
+            //                   << " time: " << time
+            //                   << " it: " << (producers[from_producer_id].consumer_set[time].end() == it[time])
+            //                   << " size: " << producers[from_producer_id].consumer_set[time].size()
+            //                   << endl;
+            // }
+        }
+        while (true) {
+            max_p = max_que.top(); 
+            max_que.pop();
+            if (max_p.first <= base_cost) break;
+            if (max_que.size()) nxt = max_que.top().first;
+            else nxt = 0;
+            int time = max_p.second;
+            // if (debug_file != nullptr && i<= 3) { 
+            //     (*debug_file) << "EndQueue:" 
+            //                   << " max_p: " << max_p.first << " " << max_p.second
+            //                   << " pre_has_cost: " << producers[from_producer_id].time_cost[time]
+            //                   << " set_size: " << producers[from_producer_id].consumer_set[time].size()
+            //                   << endl;
+            // }
+            while (it[time] != producers[from_producer_id].consumer_set[time].end()) {
+                auto& cp = *it[time];
+                consumer_id = cp / BASE;
+                stream_id = cp % BASE;
+                if (consumers[consumer_id].ini_time_need[time][stream_id] == 0) {
+                    continue ;
+                }
+                int down;
+                if (loop_type == 0) down = 0;
+                if (loop_type == 1) down = i;
+                best_to_producer_id = -1;
+                best_down = 0.0;
+                nd_bandwidth = consumers[consumer_id].ini_time_need[time][stream_id];
+                for (int j = producer_vec.size() - 1; j >= down; --j) {
+                    if (j == i) continue;
+                    to_producer_id = producer_vec[j].second;
+                    if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
+                    if (producers[to_producer_id].is_full_use_time[time] == 1) {
+                        bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]; 
+                    } else {
+                        bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
+                    }
+                    if (bandwidth >= nd_bandwidth) {
+                        best_to_producer_id = to_producer_id;
+                        break ;
+                    }
+                    bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time];
+                    if (bandwidth >= nd_bandwidth) {
+                        // todo
+                        // - xx
+                        double tmp = CalCost(producers[from_producer_id].bandwidth, max(producers[from_producer_id].time_cost[time] - nd_bandwidth, nxt))
+                                    -CalCost(producers[from_producer_id].bandwidth, producers[from_producer_id].time_cost[time]);
+                        // + xx
+                        tmp += CalCost(producers[to_producer_id].bandwidth, producers[to_producer_id].has_cost, producers[to_producer_id].time_cost[time], nd_bandwidth);
+                        
+                        if (tmp < best_down) {
+                            best_down = tmp;
+                            best_to_producer_id = to_producer_id;
+                        }
+                    } 
+                }
+                if (best_to_producer_id >= 1) {
+                    if (debug_file != nullptr && i<= 3 && print_number <= 100) {
+                        (*debug_file) << "EndWorkWithCost," 
+                                      << " time: " << time
+                                      << " from_producer_id: " << from_producer_id
+                                      << " best_to_producer_id: " << best_to_producer_id
+                                      << " consumer_id: " << consumer_id
+                                      << " stream_id: " << stream_id
+                                      << " nd_bandwidth: " << nd_bandwidth
+                                      << " pre_cost: " << producers[from_producer_id].time_cost[time]
+                                      << " best_down: " <<best_down
+                                      << endl;
+                        ++print_number;
+                    }
+                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0);
+                    tmp[time].insert(consumer_id * BASE + stream_id);
+                    break ;
+                } else {
+                    // 枚举下一个需求
+                    it[time]++; 
+                }
+            }
+            // if (debug_file != nullptr && i<= 3) { 
+            //     (*debug_file) << "find?"
+            //                   << " " << (it[time] != producers[from_producer_id].consumer_set[time].end())
+            //                   << endl;
+            // }
+            if (it[time] != producers[from_producer_id].consumer_set[time].end()) {
+                max_que.push(P(producers[from_producer_id].time_cost[time], time));
+                // 找到了 相当于下一次从下一个
+                it[time]++;
+            } else {
+                break ;
+            }
+        }
+        for (int time = 1; time <= times; ++time) {
+            for (auto& consumer_info : tmp[time]) {
+                producers[from_producer_id].consumer_set[time].erase(consumer_info);
+            }
+        }
+        producers[from_producer_id].GetAnswer(1, 1);
+        all_win += pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost;
+        cost_all_win += CalCost(producers[from_producer_id].bandwidth, pre_has_cost[from_producer_id]) - 
+                        CalCost(producers[from_producer_id].bandwidth, producers[from_producer_id].has_cost);
+        if (debug_file != nullptr && is_ab == 0) {
+            (*debug_file) << "EndWork, producer_id: " << from_producer_id
+                          << " pre_has_cost: " << pre_has_cost[from_producer_id]
+                          << " win: " << pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost
+                          << endl;
+        }
+    }
+    delete[] pre_has_cost;
+    if (debug_file != nullptr && is_ab == 0) {
+        (*debug_file) << "endwork_time_cost: " << (double)(clock() - func_begin_time) / CLOCKS_PER_SEC << "s" 
+                      << endl;
+    }
+    if (debug_file != nullptr) {
+        (*debug_file) << "endwork_all_win: " << all_win
+                      << " endwork_cost_all_win: " << cost_all_win
+                      << endl;
+    }
+    // 一直循环吧
+    return 1;
+}
+
+int EndWork(int sort_type, int loop_type) {
+    clock_t func_begin_time = clock();
+    
+    // todo
+    vector<P> time_vec;
+    vector<P> producer_vec;
+    int *pre_has_cost = new int[MAXN];
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
+        producers[producer_id].GetAnswer(1, 1);
+        producer_vec.emplace_back(1, producer_id);
+        pre_has_cost[producer_id] = producers[producer_id].has_cost;
+    }
+
+    if(sort_type == 0) random_shuffle(producer_vec.begin(), producer_vec.end());
+    if(sort_type == 1) {
+        producer_vec.clear();
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            if (producers[producer_id].discard == 1) continue;
             producer_vec.emplace_back(producers[producer_id].GetScore(), producer_id);
         }
         sort(producer_vec.begin(), producer_vec.end());
@@ -837,9 +1367,10 @@ void EndWork(int sort_type, int loop_type) {
     }
 
     int all_win = 0;
+    double cost_all_win = 0.0;
     unordered_set<int> tmp;
     int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth;
-    for (int i = 0; i < producer_number; ++i) {
+    for (int i = 0; i < producer_vec.size(); ++i) {
         from_producer_id = producer_vec[i].second;
         time_vec.clear();
         tmp.clear();
@@ -864,7 +1395,7 @@ void EndWork(int sort_type, int loop_type) {
                 int down;
                 if (loop_type == 0) down = 0;
                 if (loop_type == 1) down = i;
-                for (int j = producer_number - 1; j >= down; --j) {
+                for (int j = producer_vec.size() - 1; j >= down; --j) {
                     if (j == i) continue;
                     to_producer_id = producer_vec[j].second;
                     if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
@@ -874,7 +1405,7 @@ void EndWork(int sort_type, int loop_type) {
                         bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
                     }
                     if (bandwidth >= consumers[consumer_id].ini_time_need[time][stream_id]) {
-                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0);
+                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0);
                         cur -= consumers[consumer_id].ini_time_need[time][stream_id];
                         tmp.insert(consumer_id * BASE + stream_id);
                         break ;
@@ -888,6 +1419,8 @@ void EndWork(int sort_type, int loop_type) {
         }
         producers[from_producer_id].GetAnswer(1, 1);
         all_win += pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost;
+        cost_all_win += CalCost(producers[from_producer_id].bandwidth, pre_has_cost[from_producer_id]) - 
+                        CalCost(producers[from_producer_id].bandwidth, producers[from_producer_id].has_cost);
         if (debug_file != nullptr && is_ab == 0) {
             (*debug_file) << "EndWork, producer_id: " << from_producer_id
                           << " pre_has_cost: " << pre_has_cost[from_producer_id]
@@ -903,12 +1436,297 @@ void EndWork(int sort_type, int loop_type) {
     }
     if (debug_file != nullptr) {
         (*debug_file) << "endwork_all_win: " << all_win
+                      << " endwork_cost_all_win: " << cost_all_win
                       << endl;
     }
+    return all_win;
 }
 
+double EndWorkWithCostVec(int sort_type, int loop_type) {
+    clock_t func_begin_time = clock();
+    
+    // todo
+    vector<P> time_vec;
+    vector<P> producer_vec;
+    int *pre_has_cost = new int[MAXN];
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
+        producers[producer_id].GetAnswer(1, 1);
+        producer_vec.emplace_back(1, producer_id);
+        pre_has_cost[producer_id] = producers[producer_id].has_cost;
+    }
 
-void Reset(int reset_has_cost, int reset_has_use_full_time) {
+    if(sort_type == 0) random_shuffle(producer_vec.begin(), producer_vec.end());
+    if(sort_type == 1) {
+        producer_vec.clear();
+        for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+            if (producers[producer_id].discard == 1) continue;
+            producer_vec.emplace_back(producers[producer_id].GetScore(), producer_id);
+        }
+        sort(producer_vec.begin(), producer_vec.end());
+        reverse(producer_vec.begin(), producer_vec.end());
+    }
+
+    int all_win = 0;
+    double cost_all_win = 0.0;
+    unordered_set<int> tmp;
+    int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth, nd_bandwidth;
+    int best_to_producer_id;
+    double best_down;
+    for (int i = 0; i < producer_vec.size(); ++i) {
+        from_producer_id = producer_vec[i].second;
+        time_vec.clear();
+        tmp.clear();
+        int Max = base_cost; // 放到这个就没必要了
+        for (int time = 1; time <= times; ++time) {
+            if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
+            time_vec.emplace_back(P(producers[from_producer_id].time_cost[time], time));
+        }
+        sort(time_vec.begin(), time_vec.end());
+        reverse(time_vec.begin(), time_vec.end());
+        for (int tpi = 0; tpi < time_vec.size(); ++tpi) {
+            auto& tp = time_vec[tpi];
+            int nxt = base_cost;
+            if (tpi < (int)time_vec.size() - 1) nxt = time_vec[tpi + 1].first;
+            int time = tp.second;
+            int cur = tp.first;
+            if (tp.first <= Max) break;
+            for (auto& cp : producers[from_producer_id].consumer_set[time]) {
+                if (cur <= Max) break;
+                consumer_id = cp / BASE;
+                stream_id = cp % BASE;
+                if (consumers[consumer_id].ini_time_need[time][stream_id] == 0) {
+                    continue ;
+                }
+                int down;
+                if (loop_type == 0) down = 0;
+                if (loop_type == 1) down = i;
+                nd_bandwidth = consumers[consumer_id].ini_time_need[time][stream_id];
+                best_down = 0.0;
+                best_to_producer_id = -1;
+                for (int j = producer_vec.size() - 1; j >= down; --j) {
+                    if (j == i) continue;
+                    to_producer_id = producer_vec[j].second;
+                    if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
+                    if (producers[to_producer_id].is_full_use_time[time] == 1) {
+                        bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]; 
+                    } else {
+                        bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
+                    }
+                    if (bandwidth >= nd_bandwidth) {
+                        best_to_producer_id = to_producer_id;
+                        break ;
+                    }
+                    bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]; 
+                    if (bandwidth >= nd_bandwidth) {
+                        // todo
+                        // - xx
+                        double tmp = CalCost(producers[from_producer_id].bandwidth, max(producers[from_producer_id].time_cost[time] - nd_bandwidth, nxt))
+                                    -CalCost(producers[from_producer_id].bandwidth, max(producers[from_producer_id].time_cost[time], nxt));
+                        // + xx
+                        tmp += CalCost(producers[to_producer_id].bandwidth, producers[to_producer_id].has_cost, producers[to_producer_id].time_cost[time], nd_bandwidth);
+                        
+                        if (tmp < best_down) {
+                            best_down = tmp;
+                            best_to_producer_id = to_producer_id;
+                        }
+                    } 
+                }
+                if (debug_file != nullptr && best_down < 0.0 && i <= 3) {
+                    (*debug_file) << "down! best_down: " << best_down
+                                  << " bandwidth: " << nd_bandwidth
+                                  << endl;
+                }
+                if (best_to_producer_id >= 1) {
+                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0);
+                    tmp.insert(consumer_id * BASE + stream_id);
+                    cur -= consumers[consumer_id].ini_time_need[time][stream_id]; 
+                }
+            }
+            for (auto& consumer_info : tmp) {
+                producers[from_producer_id].consumer_set[time].erase(consumer_info);
+            }
+            Max = max(Max, cur);
+        }
+        producers[from_producer_id].GetAnswer(1, 1);
+        all_win += pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost;
+        cost_all_win += CalCost(producers[from_producer_id].bandwidth, pre_has_cost[from_producer_id]) - 
+                        CalCost(producers[from_producer_id].bandwidth, producers[from_producer_id].has_cost);
+        if (debug_file != nullptr && is_ab == 0) {
+            (*debug_file) << "EndWork, producer_id: " << from_producer_id
+                          << " pre_has_cost: " << pre_has_cost[from_producer_id]
+                          << " win: " << pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost
+                          << endl;
+        }
+    }
+
+    delete[] pre_has_cost;
+    if (debug_file != nullptr && is_ab == 0) {
+        (*debug_file) << "endwork_time_cost: " << (double)(clock() - func_begin_time) / CLOCKS_PER_SEC << "s" 
+                      << endl;
+    }
+    if (debug_file != nullptr) {
+        (*debug_file) << "endwork_all_win: " << all_win
+                      << " endwork_cost_all_win: " << cost_all_win
+                      << endl;
+    }
+    return cost_all_win;
+}
+
+int EndTryFullUse() {
+    clock_t func_begin_time = clock();
+    
+    // todo
+    vector<P> time_vec;
+    vector<P> producer_vec;
+    int *pre_has_cost = new int[MAXN];
+    int *producer_vec_id = new int[MAXN];
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].discard == 1) continue;
+        producers[producer_id].GetAnswer(1, 1);
+        producer_vec.emplace_back(1, producer_id);
+        pre_has_cost[producer_id] = producers[producer_id].has_cost;
+    }
+
+    random_shuffle(producer_vec.begin(), producer_vec.end());
+
+    for (int i = 0 ; i < producer_vec.size(); ++i) {
+        producer_vec_id[producer_vec[i].second] = i;
+    }
+
+    int all_win = 0;
+    unordered_set<int> tmp;
+    int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth;
+    for (int i = 0; i < producer_vec.size(); ++i) {
+        to_producer_id = producer_vec[i].second;
+        time_vec.clear();
+        tmp.clear();
+        for (int time = 1; time <= times; ++time) {
+            // 5%理论已经没办法放了
+            if (producers[to_producer_id].is_full_use_time[time] == 1) continue;
+            time_vec.emplace_back(P(producers[to_producer_id].time_cost[time], time));
+        }
+        for (auto& tp : time_vec) {
+            int time = tp.second;
+            int time_id = -1, lb = 0, mid, ub = (int)time_consumer_vec[time].size() - 1;
+            int lst = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];
+            while (lb <= ub) {
+                mid = (lb + ub) / 2;
+                if (time_consumer_vec[time][mid].first.first <= lst) {
+                    time_id = mid;
+                    ub = mid - 1;
+                } else {
+                    lb = mid + 1;
+                }
+            }
+            for (int j = time_id; j < time_consumer_vec[time].size(); ++j) {
+                consumer_id = time_consumer_vec[time][j].second.first;
+                stream_id = time_consumer_vec[time][j].second.second;
+                from_producer_id = info_bandwidth[time][consumer_id][stream_id];
+                bandwidth = time_consumer_vec[time][j].first.first;
+                if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
+                if (producer_vec_id[to_producer_id] <= producer_vec_id[from_producer_id] ) continue;
+                if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
+                if (lst < bandwidth) continue;
+                MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth, 0, 1);
+                lst -= bandwidth;
+            }
+        }
+    }
+    return 0;
+}
+
+// int nxt_hascost[MAXN];
+// int tmp_up[MAXN][MAXT];
+// void EndTryDiscard() {
+//     clock_t func_begin_time = clock();
+    
+//     // todo
+//     vector<P> time_vec;
+//     vector<P> producer_vec;
+//     int *pre_has_cost = new int[MAXN];
+
+//     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+//         producers[producer_id].GetAnswer(1, 1);
+//     }
+
+//     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+//         if (producers[producer_id].discard == 1) continue;
+//         int tmp = 0;
+//         for (int time = 1; time <= times; ++time) tmp = max(tmp, producers[producer_id].time_cost[time]);
+//         producer_vec.emplace_back(tmp, producer_id);
+//     }
+//     sort(producer_vec.begin(), producer_vec.end());
+    
+//     unordered_set<int> tmp;
+//     int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth;
+//     int nd_bandwidth;
+//     for (int i = 0; i < producer_vec.size() / 2; ++i) {
+//         from_producer_id = producer_vec[i].second;
+//         time_vec.clear();
+//         tmp.clear();
+//         for (int time = 1; time <= times; ++time) {
+//             // if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
+//             time_vec.emplace_back(P(producers[from_producer_id].time_cost[time], time));
+//         }
+//         sort(time_vec.begin(), time_vec.end());
+//         reverse(time_vec.begin(), time_vec.end());
+//         for (int j = 1; j <= producer_number; ++j) nxt_hascost[j] = producers[j].has_cost;
+//         for (int j = 1; j <= producer_number; ++j) {
+//             for (int time = 1; time <= times; ++time) {
+//                 tmp_up[j][time] = 0;
+//             }
+//         }
+//         for (auto& tp : time_vec) {
+//             int time = tp.second;
+//             int cur = tp.first;
+//             for (auto& cp : producers[from_producer_id].consumer_set[time]) {
+//                 consumer_id = cp / BASE;
+//                 stream_id = cp % BASE;
+//                 if (consumers[consumer_id].ini_time_need[time][stream_id] == 0) {
+//                     continue ;
+//                 }
+//                 int down;
+//                 for (int j = producer_vec.size() - 1; j >= 0; --j) {
+//                     if (j == i) continue;
+//                     to_producer_id = producer_vec[j].second;
+//                     if (producers[to_producer_id].discard == 1) continue;
+//                     if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
+//                     bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]; 
+                   
+//                     if (bandwidth >= consumers[consumer_id].ini_time_need[time][stream_id]) {
+//                         // MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0);
+                        
+//                     }
+//                 }
+//             }
+//         }
+//         producers[from_producer_id].GetAnswer(1, 1);
+//         all_win += pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost;
+//         cost_all_win += CalCost(producers[from_producer_id].bandwidth, pre_has_cost[from_producer_id]) - 
+//                         CalCost(producers[from_producer_id].bandwidth, producers[from_producer_id].has_cost);
+//         if (debug_file != nullptr && is_ab == 0) {
+//             (*debug_file) << "EndWork, producer_id: " << from_producer_id
+//                           << " pre_has_cost: " << pre_has_cost[from_producer_id]
+//                           << " win: " << pre_has_cost[from_producer_id] - producers[from_producer_id].has_cost
+//                           << endl;
+//         }
+//     }
+
+//     delete[] pre_has_cost;
+//     if (debug_file != nullptr && is_ab == 0) {
+//         (*debug_file) << "endwork_time_cost: " << (double)(clock() - func_begin_time) / CLOCKS_PER_SEC << "s" 
+//                       << endl;
+//     }
+//     if (debug_file != nullptr) {
+//         (*debug_file) << "endwork_all_win: " << all_win
+//                       << " endwork_cost_all_win: " << cost_all_win
+//                       << endl;
+//     }
+//     return all_win;   
+// }
+
+void Reset(int reset_has_cost, int reset_has_use_full_time, int reset_write) {
     for (int i = 1; i <= times; ++i) {
         time_node[i].Reset();
     }
@@ -917,6 +1735,29 @@ void Reset(int reset_has_cost, int reset_has_use_full_time) {
     }
     for (int i = 1; i <= consumer_number; ++i) {
         consumers[i].Reset();
+    }
+    if (reset_write) {
+        for (int i = 1; i <= producer_number; ++i) {
+            for (int time = 1; time <= times; ++time)
+                producers[i].consumer_set[time].clear();
+        }
+    }
+}
+
+void Reset(int reset_has_cost, int reset_has_use_full_time, int reset_write, int time) {
+    for (int i = 1; i <= times; ++i) {
+        time_node[i].Reset();
+    }
+    for (int i = 1; i <= producer_number; ++i) {
+        producers[i].Reset(reset_has_cost, reset_has_use_full_time, time);
+    }
+    for (int i = 1; i <= consumer_number; ++i) {
+        consumers[i].Reset(time);
+    }
+    if (reset_write) {
+        for (int i = 1; i <= producer_number; ++i) {
+            producers[i].consumer_set[time].clear();
+        }
     }
 }
 
@@ -1006,7 +1847,7 @@ int main(int argc, char *argv[]) {
     // alarm(2);
     begin_time = clock();
     // local or oj
-    ::info = "";
+    ::info = "xxx";
     for (int i = 1; i < argc; ++i) {
         int len = strlen(argv[i]);
         string tmp = "";
@@ -1058,6 +1899,10 @@ int main(int argc, char *argv[]) {
                     }
             }
         }
+        if (check_flag == 0) {
+            (*result_file) << "check fail! consumer != 0" << endl;
+        }
+        check_flag = 1;
         for (int i = 1; i <= producer_number; ++i) {
             for (int time = 1; time <= times; ++time) {
                 if (producers[i].time_cost[time] < 0) 
@@ -1067,7 +1912,45 @@ int main(int argc, char *argv[]) {
             }
         }
         if (check_flag == 0) {
-            (*result_file) << "check fail!" << endl;
+            (*result_file) << "check fail! producer < 0" << endl;
+        }
+        check_flag = 1;
+        for (int i = 1; i <= producer_number; ++i) {
+            for (int time = 1; time <= times; ++time) {
+                if (producers[i].time_cost[time] > producers[i].bandwidth) 
+                {
+                    check_flag = 0;
+                }
+            }
+        }
+        if (check_flag == 0) {
+            (*result_file) << "check fail! producer > bd" << endl;
+        }
+        check_flag = 1;
+        for (int i = 1; i <= producer_number; ++i) {
+            if (producers[i].discard == 0) continue;
+            for (int time = 1; time <= times; ++time) {
+                if (producers[i].time_cost[time] > 0) 
+                {
+                    check_flag = 0;
+                }
+            }
+        }
+        if (check_flag == 0) {
+            (*result_file) << "check fail! discard" << endl;
+        }
+        check_flag = 1;
+        for (int time = 1; time <= times; ++time) {
+            for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
+                for (int stream_id = 1; stream_id <= pt[time]; ++stream_id) {
+                    if (consumers[consumer_id].ini_time_need[time][stream_id] == 0) continue;
+                    if (consumers[consumer_id].can_visit_point[info_bandwidth[time][consumer_id][stream_id]] == 0)
+                        check_flag = 0;
+                }
+            }
+        }
+        if (check_flag == 0) {
+            (*result_file) << "check fail! edge" << endl;
         }
         (*result_file) << "data_dir: " << data_dir <<endl;
         (*result_file) << "sum_cost: " << GetAnswer() 
