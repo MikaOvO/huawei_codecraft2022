@@ -202,6 +202,7 @@ struct Producer {
         // }        
         // ?
         int ret = p[cost_max_index];
+        if (cost90) ret = p[cost_max_index90];
         delete[] p;
         return ret;
     }
@@ -342,6 +343,7 @@ void Init() {
     }
     ::can_full_use_time = times - cost_max_index;
     ::can_full_use_time90 = times - cost_max_index90;
+
     for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
             if (producers[producer_id].can_visit_point[consumer_id]) {
@@ -454,6 +456,20 @@ void Init() {
     }
 
 
+    // vector<int> tmp_vec;
+    // vector<P> producer_vec;
+    // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+    //     tmp_vec.clear();
+    //     for (int time = 1; time <= times; ++time) {
+    //         tmp_vec.emplace_back(producers[producer_id].need_time_cost_sum[time]);
+    //     }
+    //     sort(tmp_vec.begin(), tmp_vec.end());
+    //     int v = tmp_vec[cost_max_index90 - 1];
+    //     producer_vec.emplace_back(P(v, producer_id));
+    // }
+    // sort(producer_vec.begin(), producer_vec.end());
+    // reverse(producer_vec.begin(), producer_vec.end());
+    // for (int i = 0; i < 10; ++i) producers[producer_vec[i].second].cost90 = 1;
 
     // ab_candidate_map["pre_producer_sort"] = {0, 1, 2};
     // ab_candidate_map["pre_consumer_sort"] = {0, 1, 2};
@@ -2209,6 +2225,18 @@ void Output() {
     if (output_dir == "NULL") return ; // local and neednot
     ofstream file;
     file.open(output_dir + "/solution.txt", ios::out);
+
+    int number = 0;
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        if (producers[producer_id].cost90) {
+            ++number;
+            if (number>1) file<<",";
+            file<<producers[producer_id].name;
+        }
+    }
+    file<<endl;
+    assert(number == 10);
+
     vector<int> consumer_get_info[MAXM][MAXM]; // consumer_id, producer_id -> stream_id
     for (int time = 1; time <= times; ++time) {
         for (int consumer_id = 1; consumer_id <= consumer_number; ++consumer_id) {
