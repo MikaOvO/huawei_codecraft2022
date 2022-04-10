@@ -56,7 +56,7 @@ clock_t begin_time;
 void sig_handler(int num);
 void CheckTime() {
     double time = (double)(clock() - begin_time) / CLOCKS_PER_SEC;
-    if (time > 275.0) {
+    if (time > 200.0) {
         sig_handler(0);
         exit(0);
     }
@@ -456,20 +456,20 @@ void Init() {
     }
 
 
-    // vector<int> tmp_vec;
-    // vector<P> producer_vec;
-    // for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-    //     tmp_vec.clear();
-    //     for (int time = 1; time <= times; ++time) {
-    //         tmp_vec.emplace_back(producers[producer_id].need_time_cost_sum[time]);
-    //     }
-    //     sort(tmp_vec.begin(), tmp_vec.end());
-    //     int v = tmp_vec[cost_max_index90 - 1];
-    //     producer_vec.emplace_back(P(v, producer_id));
-    // }
-    // sort(producer_vec.begin(), producer_vec.end());
-    // reverse(producer_vec.begin(), producer_vec.end());
-    // for (int i = 0; i < 10; ++i) producers[producer_vec[i].second].cost90 = 1;
+    vector<int> tmp_vec;
+    vector<P> producer_vec;
+    for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
+        tmp_vec.clear();
+        for (int time = 1; time <= times; ++time) {
+            tmp_vec.emplace_back(producers[producer_id].need_time_cost_sum[time]);
+        }
+        sort(tmp_vec.begin(), tmp_vec.end());
+        int v = tmp_vec[cost_max_index90 - 1];
+        producer_vec.emplace_back(P(v, producer_id));
+    }
+    sort(producer_vec.begin(), producer_vec.end());
+    reverse(producer_vec.begin(), producer_vec.end());
+    for (int i = 0; i < 10; ++i) producers[producer_vec[i].second].cost90 = 1;
 
     // ab_candidate_map["pre_producer_sort"] = {0, 1, 2};
     // ab_candidate_map["pre_consumer_sort"] = {0, 1, 2};
@@ -577,7 +577,9 @@ void PreWork(int nd_write, int left_weight, int right_weight) {
 
     for (int i = 1; i <= times; ++i) ban[i] = 0;
 
-    for (int k = 1; k <= can_full_use_time * producer_number; ++k) {
+    int up =  can_full_use_time * (producer_number - 10) + can_full_use_time90 * 10; 
+
+    for (int k = 1; k <= up; ++k) {
         int best_producer_id = -1, best_time = -1, can_min_last = -1, time_sum_use = -1, node_degree = 100000;
         for (int time = 1; time <= times; ++time) {
             if (ban[time] == 1) continue;
@@ -589,7 +591,8 @@ void PreWork(int nd_write, int left_weight, int right_weight) {
         }
 
         for (int producer_id = 1; producer_id <= producer_number; ++producer_id) {
-            if (producers[producer_id].has_use_full_time == can_full_use_time) continue;
+            if (producers[producer_id].cost90 == 0 && producers[producer_id].has_use_full_time == can_full_use_time) continue;
+            if (producers[producer_id].cost90 == 1 && producers[producer_id].has_use_full_time == can_full_use_time90) continue;
             if (producers[producer_id].is_full_use_time[best_time] == 1) continue;
             if (producers[producer_id].discard == 1) continue;
             int can_last = min(producers[producer_id].need_time_cost_sum[best_time], producers[producer_id].TimeRemain(best_time));
