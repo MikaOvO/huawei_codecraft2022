@@ -377,7 +377,7 @@ void Init() {
     // ab_candidate_map["pre_consumer_sort"] = {0, 1, 2};
 }
 
-void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int consumer_id, int stream_id, int bandwidth, int update_use_cost, int nd_delete) {
+void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int consumer_id, int stream_id, int bandwidth, int update_use_cost, int nd_delete, int nd_insert) {
     if (debug_file != nullptr && is_ab == 0) {
         if ( time <= 5 && consumer_id <= 3 && bandwidth > 0 ) {
             (*debug_file) << "MoveSomeBandWidth time: " << time  
@@ -403,7 +403,10 @@ void MoveSomeBandWidth(int time, int from_producer_id, int to_producer_id, int c
     if (nd_delete == 1) {
         producers[from_producer_id].consumer_set[time].erase(consumer_id * BASE + stream_id);
     }
-    producers[to_producer_id].consumer_set[time].insert(consumer_id * BASE + stream_id);
+    // 延迟插入
+    if (nd_insert == 1) {
+        producers[to_producer_id].consumer_set[time].insert(consumer_id * BASE + stream_id);
+    }
 }
 
 void AddSomeBandWidth(int time, int producer_id, int consumer_id, int stream_id, int bandwidth, int update_use_cost=0, int nd_write=1) {
@@ -513,6 +516,13 @@ void CheckVaild() {
                     tmp_sum[producer_id][time] += consumers[consumer_id].ini_time_need[time][stream_id];
                     if (info_bandwidth[time][consumer_id][stream_id] != producer_id) {
                         check_flag = 0;
+                        (*debug_file) << "check fail!!!"
+                                      << " producer_id: " << producer_id
+                                      << " time: " << time
+                                      << " consumer_id: " << consumer_id
+                                      << " stream_id: " << stream_id
+                                      << " bel: " << info_bandwidth[time][consumer_id][stream_id]  
+                                      << endl;
                     }
                 }
             }
@@ -1047,6 +1057,8 @@ void Work() {
             // if(j % 3 == 0) EndTryFullUse();
             if (tmp == 2) break;
         }
+        EndSwapWork(1, 0);
+        EndSwapWork(0, 0);
 
         if (debug_file != nullptr) {
             (*debug_file) << "AB_answer: " << GetAnswer()
@@ -1235,7 +1247,7 @@ int EndWorkWithCost(int sort_type, int loop_type) {
                                       << endl;
                         ++print_number;
                     }
-                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0);
+                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0, 1);
                     tmp[time].insert(consumer_id * BASE + stream_id);
                     break ;
                 } else {
@@ -1350,7 +1362,7 @@ int EndWork(int sort_type, int loop_type) {
                         bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
                     }
                     if (bandwidth >= consumers[consumer_id].ini_time_need[time][stream_id]) {
-                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0);
+                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0, 1);
                         cur -= consumers[consumer_id].ini_time_need[time][stream_id];
                         tmp.insert(consumer_id * BASE + stream_id);
                         break ;
@@ -1484,7 +1496,7 @@ double EndWorkWithCostVec(int sort_type, int loop_type) {
                                   << endl;
                 }
                 if (best_to_producer_id >= 1) {
-                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0);
+                    MoveSomeBandWidth(time, from_producer_id, best_to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 1, 0, 1);
                     tmp.insert(consumer_id * BASE + stream_id);
                     cur -= consumers[consumer_id].ini_time_need[time][stream_id]; 
                 }
@@ -1548,6 +1560,7 @@ int EndSwapWork(int sort_type, int loop_type) {
     int all_win = 0;
     double cost_all_win = 0.0;
     unordered_set<int> tmp;
+    unordered_set<int> tmp2;
     int from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth;
     int consumer_id2, stream_id2, pc;
     int find_flag;
@@ -1555,6 +1568,7 @@ int EndSwapWork(int sort_type, int loop_type) {
         from_producer_id = producer_vec[i].second;
         time_vec.clear();
         tmp.clear();
+        tmp2.clear();
         int Max = base_cost; // 放到这个就没必要了
         for (int time = 1; time <= times; ++time) {
             if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
@@ -1586,36 +1600,51 @@ int EndSwapWork(int sort_type, int loop_type) {
                     } else {
                         bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
                     }
-                    if (bandwidth >= consumers[consumer_id].ini_time_need[time][stream_id]) {
-                        MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0);
-                        cur -= consumers[consumer_id].ini_time_need[time][stream_id];
-                        tmp.insert(consumer_id * BASE + stream_id);
-                        find_flag = 1;
-                        break ;
-                    }
-                }
-                if (find_flag == 1) continue;
-                for (int j = producer_vec.size() - 1; j >= down; --j) {
-                    if (j == i) continue;
-                    to_producer_id = producer_vec[j].second;
-                    if (producers[to_producer_id].can_visit_point[consumer_id] == 0) continue;
-                    if (producers[to_producer_id].is_full_use_time[time] == 1) {
-                        bandwidth = producers[to_producer_id].bandwidth - producers[to_producer_id].time_cost[time]; 
-                    } else {
-                        bandwidth = producers[to_producer_id].has_cost - producers[to_producer_id].time_cost[time];     
-                    }
                     for (auto& to_cp : producers[to_producer_id].consumer_set[time]) {
+                        // 如果info2是一个被当天移动出去的，就先不考虑移动回来了
+                        // if (tmp.find(to_cp) != tmp.end()) {
+                        //     continue ;
+                        // }
                         consumer_id2 = to_cp / BASE;
                         stream_id2 = to_cp % BASE;
                         if (producers[from_producer_id].can_visit_point[consumer_id2] == 0) continue;
                         if (consumers[consumer_id2].ini_time_need[time][stream_id2] >= consumers[consumer_id].ini_time_need[time][stream_id]) continue;
                         pc = consumers[consumer_id].ini_time_need[time][stream_id] - consumers[consumer_id2].ini_time_need[time][stream_id2];
                         if (bandwidth >= pc) {
-                            MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0);
-                            MoveSomeBandWidth(time, to_producer_id, from_producer_id, consumer_id2, stream_id2, consumers[consumer_id2].ini_time_need[time][stream_id2], 0, 0);
+                            // if (debug_file != nullptr) {
+                            //     (*debug_file) << "swap," 
+                            //                   << " pre_from_time_cost: " << producers[from_producer_id].time_cost[time]
+                            //                   << " pre_to_time_cost: " << producers[to_producer_id].time_cost[time]
+                            //                   << " bd1: " << consumers[consumer_id].ini_time_need[time][stream_id]
+                            //                   << " bd2: " << consumers[consumer_id2].ini_time_need[time][stream_id2]
+                            //                   << " from_id: " << from_producer_id
+                            //                   << " to_id: " << to_producer_id
+                            //                   << " time: " << time
+                            //                   << endl;
+                            //     (*debug_file) << "info1: " << consumer_id << " " << stream_id
+                            //                   << " info2: " << consumer_id2 << " " << stream_id2
+                            //                   << " from_id: " << from_producer_id
+                            //                   << " to_id: " << to_producer_id
+                            //                   << endl; 
+                            // }
+                            MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, consumers[consumer_id].ini_time_need[time][stream_id], 0, 0, 1);
+                            MoveSomeBandWidth(time, to_producer_id, from_producer_id, consumer_id2, stream_id2, consumers[consumer_id2].ini_time_need[time][stream_id2], 0, 1, 0);
                             cur -= consumers[consumer_id].ini_time_need[time][stream_id];
                             cur += consumers[consumer_id2].ini_time_need[time][stream_id2];
                             tmp.insert(consumer_id * BASE + stream_id);
+                            tmp2.insert(consumer_id2 * BASE + stream_id2);
+                            // if (debug_file != nullptr) {
+                            //     (*debug_file) << "swap_after," 
+                            //                   << " pre_from_time_cost: " << producers[from_producer_id].time_cost[time]
+                            //                   << " pre_to_time_cost: " << producers[to_producer_id].time_cost[time]
+                            //                   << " pre_from_can_find1: " << (producers[from_producer_id].consumer_set[time].find(consumer_id * BASE + stream_id) == producers[from_producer_id].consumer_set[time].end())
+                            //                   << " pre_to_can_find1: " << (producers[to_producer_id].consumer_set[time].find(consumer_id * BASE + stream_id) == producers[to_producer_id].consumer_set[time].end())
+                            //                   << " pre_from_can_find2: " << (producers[from_producer_id].consumer_set[time].find(consumer_id2 * BASE + stream_id2) == producers[from_producer_id].consumer_set[time].end())
+                            //                   << " pre_to_can_find2: " << (producers[to_producer_id].consumer_set[time].find(consumer_id2 * BASE + stream_id2) == producers[to_producer_id].consumer_set[time].end())
+                            //                   << " belong1: " << info_bandwidth[time][consumer_id][stream_id]
+                            //                   << " belong2: " << info_bandwidth[time][consumer_id2][stream_id2]
+                            //                   << endl;
+                            // }
                             find_flag = 1;
                             break ;
                         }
@@ -1626,7 +1655,11 @@ int EndSwapWork(int sort_type, int loop_type) {
             for (auto& consumer_info : tmp) {
                 producers[from_producer_id].consumer_set[time].erase(consumer_info);
             }
+            for (auto& consumer_info : tmp2) {
+                producers[from_producer_id].consumer_set[time].insert(consumer_info);
+            }
             tmp.clear();
+            tmp2.clear();
             Max = max(Max, cur);
         }
         producers[from_producer_id].GetAnswer(1, 1);
@@ -1709,7 +1742,7 @@ int EndTryFullUse() {
                 if (producer_vec_id[to_producer_id] <= producer_vec_id[from_producer_id] ) continue;
                 if (producers[from_producer_id].is_full_use_time[time] == 1) continue;
                 if (lst < bandwidth) continue;
-                MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth, 0, 1);
+                MoveSomeBandWidth(time, from_producer_id, to_producer_id, consumer_id, stream_id, bandwidth, 0, 1, 1);
                 lst -= bandwidth;
             }
         }

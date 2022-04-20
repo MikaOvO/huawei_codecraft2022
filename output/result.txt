@@ -248,3 +248,57 @@ End 5%,  all_has_cost: 334263042
 data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\30_10_50_a100
 sum_cost: 283574 best_answer: 282969 cost_time: 91.164s
 
+
+
+info: swap
+time: Thu Apr 21 01:07:58 2022
+after 5%,  all_has_cost: 34479615 max_need: 19098
+End 5%,  all_has_cost: 34861585
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test
+sum_cost: 22363 best_answer: 22363 cost_time: 23.317s
+
+info: 
+time: Thu Apr 21 01:08:21 2022
+after 5%,  all_has_cost: 34479615 max_need: 19098
+End 5%,  all_has_cost: 34828530
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_200
+sum_cost: 28503 best_answer: 28501 cost_time: 21.556s
+
+info: 
+time: Thu Apr 21 01:08:43 2022
+after 5%,  all_has_cost: 34479615 max_need: 19098
+End 5%,  all_has_cost: 34812475
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test2_400
+sum_cost: 40159 best_answer: 40159 cost_time: 22.159s
+
+info: 
+time: Thu Apr 21 01:09:05 2022
+after 5%,  all_has_cost: 34479615 max_need: 19098
+End 5%,  all_has_cost: 34617526
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test3_1000
+sum_cost: 78333 best_answer: 78333 cost_time: 21.016s
+
+info: 
+time: Thu Apr 21 01:09:27 2022
+after 5%,  all_has_cost: 2619262178 max_need: 41829
+End 5%,  all_has_cost: 2616597729
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\1_test4_my
+sum_cost: 82905 best_answer: 79328 cost_time: 98.304s
+
+info: 
+time: Thu Apr 21 01:11:05 2022
+after 5%,  all_has_cost: 206624100 max_need: 236978
+End 5%,  all_has_cost: 203986754
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\20_10_50_500
+sum_cost: 350009 best_answer: 342480 cost_time: 78.779s
+
+info: 
+time: Thu Apr 21 01:12:25 2022
+after 5%,  all_has_cost: 336521619 max_need: 214445
+End 5%,  all_has_cost: 334551433
+data_dir: D:\workspace\cpp_workspace\2022Codecraft\2022Huawei-CodeCraft\data\30_10_50_a100
+sum_cost: 281965 best_answer: 281293 cost_time: 101.607s
+
+info: 
+time: Thu Apr 21 01:14:07 2022
+after 5%,  all_has_cost: 289104620 max_need: 220515
