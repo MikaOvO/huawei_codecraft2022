@@ -1,1 +1,2 @@
-# 2022Huawei-CodeCraft
+# huawei_codecraft2022
+
